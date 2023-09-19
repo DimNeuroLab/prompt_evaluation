@@ -56,17 +56,23 @@ def evaluate_prompt(eval_prompt, debug=True):
         if debug:
             print(50*'*', feature)
             print(eval_string)
-            response = {feature_description: 1}
+            response = {feature_description: -1}
         else:
-            response = openai.ChatCompletion.create(
-                model=model_name,
-                messages=conversation
-            )
-            response = json.loads(response['choices'][0]['message']['content'])
+            try:
+                response = openai.ChatCompletion.create(
+                    model=model_name,
+                    messages=conversation
+                )
+                response = json.loads(response['choices'][0]['message']['content'])
+            except:
+                print(eval_string)
+                response = {feature_description: -1}
 
         try:
-            response_value = int(response[feature_description])
+            key = list(response.keys())[0]
+            response_value = int(response[key])
         except:
+            print(response)
             response_value = -1
         prompt_annotations.append(response_value)
 
@@ -81,7 +87,7 @@ if __name__ == '__main__':
     prompts = ANNOTATIONS['prompt'].tolist()
     for prompt in tqdm(prompts):
         # set debug=False to do actual API calls
-        prompt_annotations = evaluate_prompt(prompt, debug=True)
+        prompt_annotations = evaluate_prompt(prompt, debug=False)
         df_values.append(prompt_annotations)
 
     result_data = pd.DataFrame(np.array(df_values), columns=df_column_names)
