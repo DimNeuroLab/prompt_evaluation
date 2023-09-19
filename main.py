@@ -6,8 +6,8 @@ import numpy as np
 import openai
 
 
-FEATURES = pd.read_csv('features.tsv', sep='\t')
-ANNOTATIONS = pd.read_csv('annotations.tsv', sep='\t')
+FEATURES = pd.read_csv('data/features.tsv', sep='\t')
+ANNOTATIONS = pd.read_csv('data/annotations.tsv', sep='\t')
 
 openai.api_key = '' # add key here
 model_name = "gpt-3.5-turbo"
@@ -29,6 +29,7 @@ def get_negative_few_shot_example(feature_name, prompt):
         return rel_rows.sample(1)['prompt'].iloc[0]
     except:
         return ''
+
 
 def evaluate_prompt(eval_prompt, debug=True):
     feature_list = FEATURES['feature_name'].tolist()

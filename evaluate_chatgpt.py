@@ -30,8 +30,8 @@ def get_feature_wise_scores(true_df, pred_df, filler=0):
 
 
 if __name__ == '__main__':
-    ANNOTATIONS = pd.read_csv('annotations.tsv', sep='\t')
-    CHAT_GPT = pd.read_csv('chatgpt_evaluation.tsv', sep='\t')
+    ANNOTATIONS = pd.read_csv('data/annotations.tsv', sep='\t')
+    CHAT_GPT = pd.read_csv('data/chatgpt_evaluation.tsv', sep='\t')
 
     # block below for feature-wise evaluation
     accuracy_scores, f1_scores = get_feature_wise_scores(ANNOTATIONS, CHAT_GPT)
