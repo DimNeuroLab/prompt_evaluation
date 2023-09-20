@@ -1,5 +1,5 @@
 import json
-
+from utils import get_api_key
 import openai
 
 
@@ -102,6 +102,6 @@ def _test():
 
 
 if __name__ == "__main__":
-    openai.api_key = "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"
+    openai.api_key = get_api_key()
 
     _test()
