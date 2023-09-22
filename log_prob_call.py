@@ -13,7 +13,7 @@ ANNOTATIONS = pd.read_csv('data/annotations.tsv', sep='\t')
 
 openai.api_key = get_api_key()
 model_name =   'text-davinci-003' # "gpt-3.5-turbo" # #"gpt-4"
-
+promptCreator=2
 
 def get_positive_few_shot_example(feature_name, prompt, shots=1):
     relevant = ANNOTATIONS[['prompt', feature_name]]
@@ -108,13 +108,96 @@ def createPrompt(eval_prompt, feature,shots):
             You: \n
             """
     return eval_string,feature_description
-def evaluate_prompt_logits(eval_prompt, debug=True, shots=1):
+
+def createPromptInverted(eval_prompt, feature,shots):
+    feature_description = FEATURES.loc[FEATURES['feature_name'] == feature]['prompt_command'].iloc[0]
+    # include = FEATURES.loc[FEATURES['feature_name'] == feature]['include'].iloc[0]
+    positive_few_shot1 = get_positive_few_shot_example(feature, eval_prompt, shots=shots)
+    # positive_few_shot = ['Prompt ' + str(idx + 1) + ': ' + val for idx, val in enumerate(positive_few_shot)]
+    positive_few_shot1 = '\n'.join(positive_few_shot1)
+    negative_few_shot1 = get_negative_few_shot_example(feature, eval_prompt, shots=shots)
+    # negative_few_shot = ['Prompt ' + str(idx + 1) + ': ' + val for idx, val in enumerate(negative_few_shot)]
+    negative_few_shot1 = '\n'.join(negative_few_shot1)
+
+    positive_few_shot2 = get_positive_few_shot_example(feature, eval_prompt, shots=shots)
+    # positive_few_shot = ['Prompt ' + str(idx + 1) + ': ' + val for idx, val in enumerate(positive_few_shot)]
+    positive_few_shot2 = '\n'.join(positive_few_shot2)
+    negative_few_shot2 = get_negative_few_shot_example(feature, eval_prompt, shots=shots)
+    # negative_few_shot = ['Prompt ' + str(idx + 1) + ': ' + val for idx, val in enumerate(negative_few_shot)]
+    negative_few_shot2 = '\n'.join(negative_few_shot2)
+
+    eval_string = f"""Me: Answer with Yes or No if this feature:
+            {feature_description}\n
+            is present in the following prompt:\n
+            {negative_few_shot2}\n
+            You: No\n
+            Me: and in the following prompt?\n
+            {positive_few_shot2}\n
+            You: Yes\n
+
+            Me: and in the following prompt?\n
+            {positive_few_shot1}\n
+            You: Yes\n
+            Me: and in the following prompt?\n
+            {negative_few_shot1}\n
+            You: No\n
+            
+            Me: and in the following prompt?\n
+            {eval_prompt}\n
+            You: \n
+            """
+    return eval_string,feature_description
+
+
+def createPromptRevised(eval_prompt, feature, shots):
+    feature_description = FEATURES.loc[FEATURES['feature_name'] == feature]['prompt_command'].iloc[0]
+    # include = FEATURES.loc[FEATURES['feature_name'] == feature]['include'].iloc[0]
+    positive_few_shot1 = get_positive_few_shot_example(feature, eval_prompt, shots=shots)
+    # positive_few_shot = ['Prompt ' + str(idx + 1) + ': ' + val for idx, val in enumerate(positive_few_shot)]
+    positive_few_shot1 = '\n'.join(positive_few_shot1)
+    negative_few_shot1 = get_negative_few_shot_example(feature, eval_prompt, shots=shots)
+    # negative_few_shot = ['Prompt ' + str(idx + 1) + ': ' + val for idx, val in enumerate(negative_few_shot)]
+    negative_few_shot1 = '\n'.join(negative_few_shot1)
+
+    positive_few_shot2 = get_positive_few_shot_example(feature, eval_prompt, shots=shots)
+    # positive_few_shot = ['Prompt ' + str(idx + 1) + ': ' + val for idx, val in enumerate(positive_few_shot)]
+    positive_few_shot2 = '\n'.join(positive_few_shot2)
+    negative_few_shot2 = get_negative_few_shot_example(feature, eval_prompt, shots=shots)
+    # negative_few_shot = ['Prompt ' + str(idx + 1) + ': ' + val for idx, val in enumerate(negative_few_shot)]
+    negative_few_shot2 = '\n'.join(negative_few_shot2)
+
+    eval_string = f"""Me: Answer with Yes or No if this feature:
+            {feature_description}\n
+            is present in the following prompt:\n
+            {positive_few_shot1}\n
+            You: Yes\n
+            Me: and in the following prompt?\n
+            {negative_few_shot1}\n
+            You: No\n
+            Me: and in the following prompt?\n
+            {negative_few_shot2}\n
+            You: No\n
+            Me: and in the following prompt?\n
+            {positive_few_shot2}\n
+            You: Yes\n
+
+            Me: and in the following prompt?\n
+            {eval_prompt}\n
+            You: \n
+            """
+    return eval_string, feature_description
+def evaluate_prompt_logits(eval_prompt, debug=True, shots=1,promptCreator=2):
     feature_list = FEATURES['feature_name'].tolist()
     prompt_annotations = []
     prompt_annotations.append(eval_prompt)
 
     for feature in feature_list:
-        eval_string,feature_description = createPrompt(eval_prompt,feature,shots)
+        if promptCreator==1:
+            eval_string,feature_description = createPrompt(eval_prompt,feature,shots)
+        elif promptCreator==2:
+            eval_string, feature_description = createPromptInverted(eval_prompt, feature, shots)
+        elif promptCreator==3:
+            eval_string, feature_description = createPromptRevised(eval_prompt, feature, shots)
         conversation = [{'role': 'system', 'content': eval_string}]
         print('*'*15 + "  eval string  "+'*'*15)
         print(eval_string)
@@ -198,19 +281,21 @@ def evaluate_prompt_logits(eval_prompt, debug=True, shots=1):
             print('*' * 15 + "  response  log probs " + '*' * 15)
             value=response['choices'][0]["logprobs"]["token_logprobs"][0]
             if response['choices'][0]["logprobs"]["tokens"][0] in YES_string_set:
-                response_value_y =value
+                response_value_Y =value
                 response_value_N = -100
             else:
-                response_value_y = -100
+                response_value_Y = -100
                 response_value_N = value
-            print(response_value_y,response_value_N)
+
             # response = json.loads(response['choices'][0]['message']['content'])
             #sys.exit(0)
         else:
-            response_value_y = -100
+            response_value_Y = -100
             response_value_N = -100
-
-        prompt_annotations.append(response_value_y)
+            global not_good_response
+            not_good_response += 1
+        print(response_value_Y, response_value_N)
+        prompt_annotations.append(response_value_Y)
         prompt_annotations.append(response_value_N)
 
 
@@ -220,24 +305,29 @@ def evaluate_prompt_logits(eval_prompt, debug=True, shots=1):
 
 from itertools import product
 if __name__ == '__main__':
+    global not_good_response
+    not_good_response = 0
     df_column_names_1 = [ b+a for a, b in product(["_Y","_N"], list(ANNOTATIONS.columns)[1:])]
     print(df_column_names_1)
     df_column_names=[list(ANNOTATIONS.columns)[0]]
     df_column_names.extend(df_column_names_1)
     print(list(ANNOTATIONS.columns))
     print(df_column_names)
-    for _ in range(1):
+    for _ in range(4):
         df_values = []
 
         prompts = ANNOTATIONS['prompt'].tolist()
         for prompt in tqdm(prompts):
             # set debug=False to do actual API calls
-            prompt_annotations = evaluate_prompt_logits(prompt, debug=False, shots=1)
+            prompt_annotations = evaluate_prompt_logits(prompt, debug=False, shots=1,promptCreator=promptCreator)
             df_values.append(prompt_annotations)
 
+        print("not good response")
+        print(not_good_response)
 
         import time
 
         timestr = time.strftime("%Y%m%d-%H%M%S")
         result_data = pd.DataFrame(np.array(df_values), columns=df_column_names)
-        result_data.to_csv('output/'+model_name+'_evaluation_log_2shots'+timestr+'.tsv', sep='\t', index=False)
+        result_data.to_csv('output/'+model_name+'_evaluation_log_2shots_promptgen_'+str(promptCreator)+'_'+timestr+'.tsv', sep='\t', index=False)
+
