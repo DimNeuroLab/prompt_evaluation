@@ -48,41 +48,58 @@ class timeout:
     def __exit__(self, type, value, traceback):
         signal.alarm(0)
 
+def createPrompt(eval_prompt, feature,shots):
+    feature_description = FEATURES.loc[FEATURES['feature_name'] == feature]['prompt_command'].iloc[0]
+    # include = FEATURES.loc[FEATURES['feature_name'] == feature]['include'].iloc[0]
+    positive_few_shot1 = get_positive_few_shot_example(feature, eval_prompt, shots=shots)
+    # positive_few_shot = ['Prompt ' + str(idx + 1) + ': ' + val for idx, val in enumerate(positive_few_shot)]
+    positive_few_shot1 = '\n'.join(positive_few_shot1)
+    negative_few_shot1 = get_negative_few_shot_example(feature, eval_prompt, shots=shots)
+    # negative_few_shot = ['Prompt ' + str(idx + 1) + ': ' + val for idx, val in enumerate(negative_few_shot)]
+    negative_few_shot1 = '\n'.join(negative_few_shot1)
 
+    positive_few_shot2 = get_positive_few_shot_example(feature, eval_prompt, shots=shots)
+    # positive_few_shot = ['Prompt ' + str(idx + 1) + ': ' + val for idx, val in enumerate(positive_few_shot)]
+    positive_few_shot2 = '\n'.join(positive_few_shot2)
+    negative_few_shot2 = get_negative_few_shot_example(feature, eval_prompt, shots=shots)
+    # negative_few_shot = ['Prompt ' + str(idx + 1) + ': ' + val for idx, val in enumerate(negative_few_shot)]
+    negative_few_shot2 = '\n'.join(negative_few_shot2)
+
+    eval_string = f"""Me: Check if this feature:
+            {feature_description}\n
+            is present in the following prompts, answer with Y or N\n
+            {positive_few_shot1}\n
+            You: Y\n
+            Me: and in the following prompt?
+            {negative_few_shot1}\n
+            You: N\n
+
+            Me: and in the following prompt?
+            {negative_few_shot2}\n
+            You: N\n
+            Me: and in the following prompt?
+            {positive_few_shot2}\n
+            You: Y\n
+
+            Me: and in the following prompt?
+            {eval_prompt}\n
+            You: \n
+            """
+    return eval_string
 def evaluate_prompt_logits(eval_prompt, debug=True, shots=1):
     feature_list = FEATURES['feature_name'].tolist()
     prompt_annotations = []
     prompt_annotations.append(eval_prompt)
 
     for feature in feature_list:
-        feature_description = FEATURES.loc[FEATURES['feature_name'] == feature]['prompt_command'].iloc[0]
-        # include = FEATURES.loc[FEATURES['feature_name'] == feature]['include'].iloc[0]
-        positive_few_shot = get_positive_few_shot_example(feature, eval_prompt, shots=shots)
-        # positive_few_shot = ['Prompt ' + str(idx + 1) + ': ' + val for idx, val in enumerate(positive_few_shot)]
-        positive_few_shot = '\n'.join(positive_few_shot)
-        negative_few_shot = get_negative_few_shot_example(feature, eval_prompt, shots=shots)
-        # negative_few_shot = ['Prompt ' + str(idx + 1) + ': ' + val for idx, val in enumerate(negative_few_shot)]
-        negative_few_shot = '\n'.join(negative_few_shot)
-
-        eval_string = f"""Given the following feature:
-        {feature_description}\n
-        The feature is present in the following prompts:
-        {positive_few_shot}\n
-        The feature is not present in the following prompts:
-        {negative_few_shot}\n
-        Prompt:
-        {eval_prompt}\n
-        0) The feature described above is not present in the given prompt.
-        1) The feature described above is present in the given prompt.
-        Which option is correct? Answer with a single letter.
-        """
+        eval_string = createPrompt(eval_prompt,feature,shots)
         conversation = [{'role': 'system', 'content': eval_string}]
-
+        print(eval_string)
         response = None
         if debug:
             print(50*'*', feature)
             print(eval_string)
-            response = {feature_description: -1}
+        #    response = {feature_description: -1}
         else:
             max_attempts = 5
             for _ in range(max_attempts):
@@ -112,11 +129,13 @@ def evaluate_prompt_logits(eval_prompt, debug=True, shots=1):
                             },
                         )
                     #break
-                except:
+                except Exception as EXX:
+                    print(EXX)
                     print('Timeout, retrying...')
                     pass
 
         if response is not None:
+            print("**** response ****")
             print(response)
             #response = int(response['choices'][0]['text'])
             print(response)
@@ -132,6 +151,7 @@ def evaluate_prompt_logits(eval_prompt, debug=True, shots=1):
             print(response)
             response_value = -1
         prompt_annotations.append(response_value)
+        break
 
     return prompt_annotations
 
@@ -140,11 +160,13 @@ if __name__ == '__main__':
     df_column_names = list(ANNOTATIONS.columns)
     df_values = []
 
+
     prompts = ANNOTATIONS['prompt'].tolist()
     for prompt in tqdm(prompts):
         # set debug=False to do actual API calls
-        prompt_annotations = evaluate_prompt_logits(prompt, debug=False, shots=2)
+        prompt_annotations = evaluate_prompt_logits(prompt, debug=False, shots=1)
         df_values.append(prompt_annotations)
+        break
 
     result_data = pd.DataFrame(np.array(df_values), columns=df_column_names)
     result_data.to_csv('output/chatgpt_evaluation_log_2shots.tsv', sep='\t', index=False)
