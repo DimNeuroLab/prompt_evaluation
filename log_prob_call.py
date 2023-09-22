@@ -91,17 +91,17 @@ def createPrompt(eval_prompt, feature,shots):
             {feature_description}\n
             is present in the following prompts, answer with YES or NO\n
             {positive_few_shot1}\n
-            You: YES\n
+            You: Yes\n
             Me: and in the following prompt?
             {negative_few_shot1}\n
-            You: NO\n
+            You: No\n
 
             Me: and in the following prompt?
             {negative_few_shot2}\n
-            You: NO\n
+            You: No\n
             Me: and in the following prompt?
             {positive_few_shot2}\n
-            You: YES\n
+            You: Yes\n
 
             Me: and in the following prompt?
             {eval_prompt}\n
@@ -139,23 +139,45 @@ def evaluate_prompt_logits(eval_prompt, debug=True, shots=1):
                             }
                         )
                         '''
+                        '''
+                                                    import tiktoke
+                                                    tokenizer = tiktoken.encoding_for_model("text-davinci-003")
+                                                    tokens = [" Yes", " No"]
+                                                    ids = [tokenizer.encode(token) for token in tokens]
+                                                    ids
+                                                    Out[6]: [[3363], [1400]]
+                                                    '''
                         response = openai.Completion.create(
                             model=model_name, #'text-davinci-003',
                             prompt=eval_string,
                             max_tokens=1,
                             temperature=0,
                             logprobs=2,
-                            logit_bias={
+
+                            #logit_bias={
                                 # 15: 100.0,  # 0
                                 # 16: 100.0,  # 1
-                                15285: 100.0,   #YES
+                                #15285: 100.0,   #YES
 
-                                43335: 100.0,    # YES
-                                15285: 100.0,    #NO
-                                8005: 100.0     # NO
+                                #43335: 100.0,    # YES
+                                #15285: 100.0,    #NO
+                                #8005: 100.0     # NO
+                             #   3363: 1, # " Yes"
+                             #   1400: 1 # " No"
 
-                            },
+                            #},
+
                         )
+                        '''
+                        2 runs no logit bias
+                        
+                        "Yes": -0.12884715,
+                        " Yes": -2.1852436
+                        "Yes": -0.42685947,
+                        " Yes": -1.0789018
+                        
+                        
+                        '''
                         break
                 except Exception as EXX:
                     print("exx")
