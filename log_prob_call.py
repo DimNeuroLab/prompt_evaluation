@@ -12,7 +12,7 @@ FEATURES = pd.read_csv('data/features.tsv', sep='\t')
 ANNOTATIONS = pd.read_csv('data/annotations.tsv', sep='\t')
 
 openai.api_key = get_api_key()
-model_name =   'text-davinci-003' # "gpt-3.5-turbo" #
+model_name =   'text-davinci-003' # "gpt-3.5-turbo" # #"gpt-4"
 
 
 def get_positive_few_shot_example(feature_name, prompt, shots=1):
@@ -214,6 +214,8 @@ def evaluate_prompt_logits(eval_prompt, debug=True, shots=1):
         prompt_annotations.append(response_value_N)
 
 
+
+
     return prompt_annotations
 
 from itertools import product
@@ -224,16 +226,18 @@ if __name__ == '__main__':
     df_column_names.extend(df_column_names_1)
     print(list(ANNOTATIONS.columns))
     print(df_column_names)
-    df_values = []
+    for _ in range(5):
+        df_values = []
 
-    prompts = ANNOTATIONS['prompt'].tolist()
-    for prompt in tqdm(prompts):
-        # set debug=False to do actual API calls
-        prompt_annotations = evaluate_prompt_logits(prompt, debug=False, shots=1)
-        df_values.append(prompt_annotations)
+        prompts = ANNOTATIONS['prompt'].tolist()
+        for prompt in tqdm(prompts):
+            # set debug=False to do actual API calls
+            prompt_annotations = evaluate_prompt_logits(prompt, debug=False, shots=1)
+            df_values.append(prompt_annotations)
 
-    import time
 
-    timestr = time.strftime("%Y%m%d-%H%M%S")
-    result_data = pd.DataFrame(np.array(df_values), columns=df_column_names)
-    result_data.to_csv('output/chatgpt_evaluation_log_2shots'+timestr+'.tsv', sep='\t', index=False)
+        import time
+
+        timestr = time.strftime("%Y%m%d-%H%M%S")
+        result_data = pd.DataFrame(np.array(df_values), columns=df_column_names)
+        result_data.to_csv('output/'+model_name+'_evaluation_log_2shots'+timestr+'.tsv', sep='\t', index=False)
