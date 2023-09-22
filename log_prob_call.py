@@ -87,7 +87,7 @@ def evaluate_prompt_logits(eval_prompt, debug=True, shots=1):
             max_attempts = 5
             for _ in range(max_attempts):
                 try:
-                    with timeout(seconds=20):
+                    #with timeout(seconds=20):
                         '''
                         response = openai.ChatCompletion.create(
                             model=model_name,
@@ -111,17 +111,17 @@ def evaluate_prompt_logits(eval_prompt, debug=True, shots=1):
                                 43335: 100.0    # NO
                             },
                         )
-                    break
+                    #break
                 except:
                     print('Timeout, retrying...')
                     pass
 
         if response is not None:
             print(response)
-            response = int(response['choices'][0]['text'])
+            #response = int(response['choices'][0]['text'])
             print(response)
             # response = json.loads(response['choices'][0]['message']['content'])
-            sys.exit(0)
+            #sys.exit(0)
         else:
             response = {feature_description: -1}
 
