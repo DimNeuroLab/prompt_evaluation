@@ -178,47 +178,62 @@ def evaluate_prompt_logits(eval_prompt, debug=True, shots=1):
                         
                         
                         '''
-                        break
+                        YES_string_set={"Yes","YES","Y"," Yes"," YES"," Y","Yes ","YES ","Y "," Yes "," YES "," Y ",}
+                        NO_string_set = {"No", "NO", "N", " No", " NO", " N", "No ", "NO ", "N ", " No ", " NO ",
+                                      " N", }
+
+                        if (response['choices'][0]["logprobs"]["tokens"][0] in YES_string_set or response['choices'][0]["logprobs"]["tokens"][0] in NO_string_set):
+                            break
                 except Exception as EXX:
                     print("exx")
                     print(EXX)
                     print('Timeout, retrying...')
                     pass
 
-        if response is not None:
+
+        if response is not None and (response['choices'][0]["logprobs"]["tokens"][0] in YES_string_set or response['choices'][0]["logprobs"]["tokens"][0] in NO_string_set):
             print('*' * 15 + "  response  " + '*' * 15)
             #print("**** response ****")
             print(response)
-            response =(response['choices'][0]['text'])
-            print(response)
+            print('*' * 15 + "  response  log probs " + '*' * 15)
+            value=response['choices'][0]["logprobs"]["token_logprobs"][0]
+            if response['choices'][0]["logprobs"]["tokens"][0] in YES_string_set:
+                response_value_y =value
+                response_value_N = -100
+            else:
+                response_value_y = -100
+                response_value_N = value
+            print(response_value_y,response_value_N)
             # response = json.loads(response['choices'][0]['message']['content'])
             #sys.exit(0)
         else:
-            response = {feature_description: -1}
+            response_value_y = -100
+            response_value_N = -100
 
-        try:
-            key = list(response.keys())[0]
-            response_value = int(response[key])
-        except:
-            print(response)
-            response_value = -1
-        prompt_annotations.append(response_value)
-        break
+        prompt_annotations.append(response_value_y)
+        prompt_annotations.append(response_value_N)
+
 
     return prompt_annotations
 
-
+from itertools import product
 if __name__ == '__main__':
-    df_column_names = list(ANNOTATIONS.columns)
+    df_column_names_1 = [ b+a for a, b in product(["_Y","_N"], list(ANNOTATIONS.columns)[1:])]
+    print(df_column_names_1)
+    df_column_names=[list(ANNOTATIONS.columns)[0]]
+    df_column_names.extend(df_column_names_1)
+    print(list(ANNOTATIONS.columns))
+    print(df_column_names)
     df_values = []
-
 
     prompts = ANNOTATIONS['prompt'].tolist()
     for prompt in tqdm(prompts):
         # set debug=False to do actual API calls
         prompt_annotations = evaluate_prompt_logits(prompt, debug=False, shots=1)
         df_values.append(prompt_annotations)
-        break
 
+    import time
+
+    timestr = time.strftime("%Y%m%d-%H%M%S")
     result_data = pd.DataFrame(np.array(df_values), columns=df_column_names)
-    result_data.to_csv('output/chatgpt_evaluation_log_2shots.tsv', sep='\t', index=False)
+    result_data.to_csv('output/chatgpt_evaluation_log_2shots'+timestr+'.tsv', sep='\t', index=False)
