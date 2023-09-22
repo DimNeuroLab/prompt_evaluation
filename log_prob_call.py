@@ -226,7 +226,7 @@ if __name__ == '__main__':
     df_column_names.extend(df_column_names_1)
     print(list(ANNOTATIONS.columns))
     print(df_column_names)
-    for _ in range(5):
+    for _ in range(1):
         df_values = []
 
         prompts = ANNOTATIONS['prompt'].tolist()
