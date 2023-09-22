@@ -6,13 +6,13 @@ import numpy as np
 import openai
 import signal
 from utils import get_api_key
-
+import threading
 
 FEATURES = pd.read_csv('data/features.tsv', sep='\t')
 ANNOTATIONS = pd.read_csv('data/annotations.tsv', sep='\t')
 
 openai.api_key = get_api_key()
-model_name = 'text-davinci-003' # "gpt-3.5-turbo"
+model_name =   'text-davinci-003' # "gpt-3.5-turbo" #
 
 
 def get_positive_few_shot_example(feature_name, prompt, shots=1):
@@ -33,7 +33,7 @@ def get_negative_few_shot_example(feature_name, prompt, shots=1):
         return ''
 
 
-class timeout:
+class timeoutLinux:
     def __init__(self, seconds=1, error_message='Timeout'):
         self.seconds = seconds
         self.error_message = error_message
@@ -47,6 +47,28 @@ class timeout:
 
     def __exit__(self, type, value, traceback):
         signal.alarm(0)
+
+
+class timeoutWindows:
+    def __init__(self, seconds=1, error_message='Timeout'):
+        self.seconds = 100.0
+        self.error_message = error_message
+
+    def handle_timeout(self):
+        print("timemout")
+        raise TimeoutError(self.error_message)
+
+    def __enter__(self):
+        #signal.signal(signal.SIGALRM, self.handle_timeout)
+        #signal.alarm(self.seconds)
+        print("seconds",self.seconds)
+        self.timer=threading.Timer(self.seconds,self.handle_timeout)
+        self.timer.start()
+
+    def __exit__(self, type, value, traceback):
+        self.timer.cancel()
+        #signal.alarm(0)
+
 
 def createPrompt(eval_prompt, feature,shots):
     feature_description = FEATURES.loc[FEATURES['feature_name'] == feature]['prompt_command'].iloc[0]
@@ -67,32 +89,32 @@ def createPrompt(eval_prompt, feature,shots):
 
     eval_string = f"""Me: Check if this feature:
             {feature_description}\n
-            is present in the following prompts, answer with Y or N\n
+            is present in the following prompts, answer with YES or NO\n
             {positive_few_shot1}\n
-            You: Y\n
+            You: YES\n
             Me: and in the following prompt?
             {negative_few_shot1}\n
-            You: N\n
+            You: NO\n
 
             Me: and in the following prompt?
             {negative_few_shot2}\n
-            You: N\n
+            You: NO\n
             Me: and in the following prompt?
             {positive_few_shot2}\n
-            You: Y\n
+            You: YES\n
 
             Me: and in the following prompt?
             {eval_prompt}\n
             You: \n
             """
-    return eval_string
+    return eval_string,feature_description
 def evaluate_prompt_logits(eval_prompt, debug=True, shots=1):
     feature_list = FEATURES['feature_name'].tolist()
     prompt_annotations = []
     prompt_annotations.append(eval_prompt)
 
     for feature in feature_list:
-        eval_string = createPrompt(eval_prompt,feature,shots)
+        eval_string,feature_description = createPrompt(eval_prompt,feature,shots)
         conversation = [{'role': 'system', 'content': eval_string}]
         print(eval_string)
         response = None
@@ -104,7 +126,7 @@ def evaluate_prompt_logits(eval_prompt, debug=True, shots=1):
             max_attempts = 5
             for _ in range(max_attempts):
                 try:
-                    #with timeout(seconds=20):
+                    with timeoutWindows(seconds=20):
                         '''
                         response = openai.ChatCompletion.create(
                             model=model_name,
@@ -128,8 +150,9 @@ def evaluate_prompt_logits(eval_prompt, debug=True, shots=1):
                                 43335: 100.0    # NO
                             },
                         )
-                    #break
+                        break
                 except Exception as EXX:
+                    print("exx")
                     print(EXX)
                     print('Timeout, retrying...')
                     pass
