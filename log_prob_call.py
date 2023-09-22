@@ -116,6 +116,7 @@ def evaluate_prompt_logits(eval_prompt, debug=True, shots=1):
     for feature in feature_list:
         eval_string,feature_description = createPrompt(eval_prompt,feature,shots)
         conversation = [{'role': 'system', 'content': eval_string}]
+        print('*'*15 + "  eval string  "+'*'*15)
         print(eval_string)
         response = None
         if debug:
@@ -141,13 +142,18 @@ def evaluate_prompt_logits(eval_prompt, debug=True, shots=1):
                         response = openai.Completion.create(
                             model=model_name, #'text-davinci-003',
                             prompt=eval_string,
-                            # max_tokens=256,
+                            max_tokens=1,
                             temperature=0,
+                            logprobs=2,
                             logit_bias={
                                 # 15: 100.0,  # 0
                                 # 16: 100.0,  # 1
-                                15285: 100.0,   # YES
-                                43335: 100.0    # NO
+                                15285: 100.0,   #YES
+
+                                43335: 100.0,    # YES
+                                15285: 100.0,    #NO
+                                8005: 100.0     # NO
+
                             },
                         )
                         break
@@ -158,9 +164,10 @@ def evaluate_prompt_logits(eval_prompt, debug=True, shots=1):
                     pass
 
         if response is not None:
-            print("**** response ****")
+            print('*' * 15 + "  response  " + '*' * 15)
+            #print("**** response ****")
             print(response)
-            #response = int(response['choices'][0]['text'])
+            response =(response['choices'][0]['text'])
             print(response)
             # response = json.loads(response['choices'][0]['message']['content'])
             #sys.exit(0)
