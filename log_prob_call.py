@@ -15,6 +15,18 @@ openai.api_key = get_api_key()
 model_name =   'text-davinci-003' # "gpt-3.5-turbo" # #"gpt-4"
 promptCreator=2
 
+
+from tenacity import (
+    retry,
+    stop_after_attempt,
+    wait_random_exponential,
+)  # for exponential backoff
+
+
+@retry(wait=wait_random_exponential(min=1, max=60), stop=stop_after_attempt(3))
+def completion_with_backoff(**kwargs):
+    return openai.Completion.create(**kwargs)
+
 def get_positive_few_shot_example(feature_name, prompt, shots=1):
     relevant = ANNOTATIONS[['prompt', feature_name]]
     try:
@@ -230,7 +242,7 @@ def evaluate_prompt_logits(eval_prompt, debug=True, shots=1,promptCreator=2):
                                                     ids
                                                     Out[6]: [[3363], [1400]]
                                                     '''
-                        response = openai.Completion.create(
+                        response = completion_with_backoff(
                             model=model_name, #'text-davinci-003',
                             prompt=eval_string,
                             max_tokens=1,
