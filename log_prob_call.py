@@ -7,20 +7,23 @@ import openai
 import signal
 from utils import get_api_key
 import threading
-
-FEATURES = pd.read_csv('data/features.tsv', sep='\t')
-ANNOTATIONS = pd.read_csv('data/annotations.tsv', sep='\t')
-
-openai.api_key = get_api_key()
-model_name =   'text-davinci-003' # "gpt-3.5-turbo" # #"gpt-4"
-promptCreator=2
-
-
+import time
 from tenacity import (
     retry,
     stop_after_attempt,
     wait_random_exponential,
 )  # for exponential backoff
+
+
+
+FEATURES = pd.read_csv('data/features.tsv', sep='\t')
+ANNOTATIONS = pd.read_csv('data/annotations.tsv', sep='\t')
+
+openai.api_key = get_api_key()
+model_name =   "gpt-3.5-turbo-instruct" #'text-davinci-003' # "gpt-3.5-turbo" # #"gpt-4"
+promptCreator=3
+num_runs= 11
+
 
 
 @retry(wait=wait_random_exponential(min=1, max=60), stop=stop_after_attempt(3))
@@ -222,6 +225,7 @@ def evaluate_prompt_logits(eval_prompt, debug=True, shots=1,promptCreator=2):
             max_attempts = 5
             for _ in range(max_attempts):
                 try:
+                    time.sleep(0.5)
                     with timeoutWindows(seconds=20):
                         '''
                         response = openai.ChatCompletion.create(
@@ -277,6 +281,7 @@ def evaluate_prompt_logits(eval_prompt, debug=True, shots=1,promptCreator=2):
                         NO_string_set = {"No", "NO", "N", " No", " NO", " N", "No ", "NO ", "N ", " No ", " NO ",
                                       " N", }
 
+
                         if (response['choices'][0]["logprobs"]["tokens"][0] in YES_string_set or response['choices'][0]["logprobs"]["tokens"][0] in NO_string_set):
                             break
                 except Exception as EXX:
@@ -325,7 +330,7 @@ if __name__ == '__main__':
     df_column_names.extend(df_column_names_1)
     print(list(ANNOTATIONS.columns))
     print(df_column_names)
-    for _ in range(4):
+    for _ in range(num_runs):
         df_values = []
 
         prompts = ANNOTATIONS['prompt'].tolist()
@@ -334,10 +339,11 @@ if __name__ == '__main__':
             prompt_annotations = evaluate_prompt_logits(prompt, debug=False, shots=1,promptCreator=promptCreator)
             df_values.append(prompt_annotations)
 
+
         print("not good response")
         print(not_good_response)
 
-        import time
+
 
         timestr = time.strftime("%Y%m%d-%H%M%S")
         result_data = pd.DataFrame(np.array(df_values), columns=df_column_names)
