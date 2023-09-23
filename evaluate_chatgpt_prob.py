@@ -24,16 +24,19 @@ def get_feature_wise_scores(true_df, pred_df, filler=0):
         y_true = true_df[feature].tolist()
         y_pred = pred_df[feature+'_Y'].to_numpy()
         n_pred = pred_df[feature + '_N'].to_numpy()
-        y_pred[y_pred == -1] = filler
 
-        accuracy_scores[feature] = accuracy_score(y_true, y_pred)
-        f1_scores[feature] = f1_score(y_true, y_pred, average='macro')
+        #y_pred[y_pred == -1] = filler
+        f_pred=np.stack((n_pred,y_pred))
+
+        f_pred=f_pred.argmax(0)
+        accuracy_scores[feature] = accuracy_score(y_true, f_pred)
+        f1_scores[feature] = f1_score(y_true, f_pred, average='macro')
     return accuracy_scores, f1_scores
 
 
 if __name__ == '__main__':
     ANNOTATIONS = pd.read_csv('data/annotations.tsv', sep='\t')
-    CHAT_GPT = pd.read_csv('output/chatgpt_evaluation_1shot.tsv', sep='\t')
+    CHAT_GPT = pd.read_csv('output/gpt-3.5-turbo-instruct_evaluation_log_2shots_promptgen_2_20230923-145901.tsv', sep='\t')
 
     # block below for feature-wise evaluation
     accuracy_scores, f1_scores = get_feature_wise_scores(ANNOTATIONS, CHAT_GPT)

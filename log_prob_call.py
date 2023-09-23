@@ -23,7 +23,7 @@ ANNOTATIONS = pd.read_csv('data/'+annotation_filename+'.tsv', sep='\t')
 openai.api_key = get_api_key()
 model_name =   "gpt-3.5-turbo-instruct" #'text-davinci-003' # "gpt-3.5-turbo" # #"gpt-4"
 promptCreator=2
-num_runs= 1
+num_runs= 11
 
 
 
@@ -382,6 +382,7 @@ if __name__ == '__main__':
             # set debug=False to do actual API calls
             prompt_annotations = evaluate_prompt_logits(prompt, debug=False, shots=1,promptCreator=promptCreator)
             df_values.append(prompt_annotations)
+
 
 
         print("not good response")
