@@ -22,7 +22,7 @@ ANNOTATIONS = pd.read_csv('data/'+annotation_filename+'.tsv', sep='\t')
 
 openai.api_key = get_api_key()
 model_name =   "gpt-3.5-turbo-instruct" #'text-davinci-003' # "gpt-3.5-turbo" # #"gpt-4"
-promptCreator=2
+promptCreator=3
 num_runs= 11
 
 
