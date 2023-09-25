@@ -24,11 +24,11 @@ openai.api_key = get_api_key()
 model_name =   "gpt-3.5-turbo-instruct" #'text-davinci-003' # "gpt-3.5-turbo" # #"gpt-4"
 promptCreator=4
 shots=3
-num_runs= 11
+num_runs= 4
 
 
 
-@retry(wait=wait_random_exponential(min=1, max=60), stop=stop_after_attempt(4))
+@retry(wait=wait_random_exponential(min=1, max=240), stop=stop_after_attempt(4))
 def completion_with_backoff(**kwargs):
     return openai.Completion.create(**kwargs)
 
@@ -67,9 +67,9 @@ class timeoutLinux:
 
 
 class timeoutWindows:
-    def __init__(self, seconds=1, error_message='Timeout'):
-        self.seconds = 100.0
-        self.error_message = error_message
+    def __init__(self, seconds=1, error_message='Timeout '):
+        self.seconds = seconds
+        self.error_message = error_message +' '+str(seconds)
 
     def handle_timeout(self):
         print("timemout")
@@ -257,10 +257,10 @@ def createPromptRandom(eval_prompt, feature, shots):
     # include = FEATURES.loc[FEATURES['feature_name'] == feature]['include'].iloc[0]
     positive_few_shot = []
     negative_few_shot = []
-    eval_string = f"""Me: Answer with Yes or No if this feature:
+    eval_string = f"""
+            Me: Answer with Yes or No if this feature:
                 {feature_description}\n
-                is present in the following prompt:\n
-                """
+            is present in the following prompt:\n"""
     for i in range(shots):
         positive_few_shot.append(get_positive_few_shot_example(feature, eval_prompt, shots=1))
         # positive_few_shot = ['Prompt ' + str(idx + 1) + ': ' + val for idx, val in enumerate(positive_few_shot)]
@@ -278,7 +278,7 @@ def createPromptRandom(eval_prompt, feature, shots):
             Me: and in the following prompt?\n"""
             eval_string+=newsubstring
         else:
-            eval_string+=f""""
+            eval_string+=f"""
             {positive_few_shot[i]}\n
             You: Yes\n
             Me: and in the following prompt?\n
@@ -286,9 +286,10 @@ def createPromptRandom(eval_prompt, feature, shots):
             You: No\n
             Me: and in the following prompt?\n"""
 
-    eval_string+=f""""
-    {eval_prompt}\n
-    You: \n"""
+    eval_string += f"""
+            {eval_prompt}\n
+            You: \n
+            """
 
     return eval_string, feature_description
 
@@ -358,7 +359,7 @@ def evaluate_prompt_logits(eval_prompt, debug=True, shots=1,promptCreator=2):
             for _ in range(max_attempts):
                 try:
                     time.sleep(0.5)
-                    with timeoutWindows(seconds=40):
+                    with timeoutWindows(seconds=100):
                         '''
                         response = openai.ChatCompletion.create(
                             model=model_name,
@@ -385,7 +386,7 @@ def evaluate_prompt_logits(eval_prompt, debug=True, shots=1,promptCreator=2):
                             temperature=0,
                             logprobs=2,
 
-                            #logit_bias={
+                            logit_bias={
                                 # 15: 100.0,  # 0
                                 # 16: 100.0,  # 1
                                 #15285: 100.0,   #YES
@@ -393,10 +394,10 @@ def evaluate_prompt_logits(eval_prompt, debug=True, shots=1,promptCreator=2):
                                 #43335: 100.0,    # YES
                                 #15285: 100.0,    #NO
                                 #8005: 100.0     # NO
-                             #   3363: 1, # " Yes"
-                             #   1400: 1 # " No"
+                                #3363: 1, # " Yes"
+                                #1400: 1 # " No"
 
-                            #},
+                            },
 
                         )
                         '''
@@ -416,6 +417,11 @@ def evaluate_prompt_logits(eval_prompt, debug=True, shots=1,promptCreator=2):
 
                         if (response['choices'][0]["logprobs"]["tokens"][0] in YES_string_set or response['choices'][0]["logprobs"]["tokens"][0] in NO_string_set):
                             break
+                        else:
+                            print('+' * 80)
+                            print("bad response")
+                            print(response)
+                            print('+'*80)
                 except Exception as EXX:
                     print("exx")
                     print(EXX)
@@ -481,5 +487,5 @@ if __name__ == '__main__':
 
         timestr = time.strftime("%Y%m%d-%H%M%S")
         result_data = pd.DataFrame(np.array(df_values), columns=df_column_names)
-        result_data.to_csv('output/'+model_name+'_evaluation_log_shots_'+str(shots)+'promptgen_'+str(promptCreator)+"_features_file_"+features_filename+"_annotation_file_"+annotation_filename+'_'+timestr+'.tsv', sep='\t', index=False)
+        result_data.to_csv('output/'+model_name+'_evaluation_log_shots_'+str(shots)+'promptgen_'+str(promptCreator)+"_features_file_"+features_filename+"_annotation_file_"+annotation_filename+'_'+timestr+'nobias.tsv', sep='\t', index=False)
 
