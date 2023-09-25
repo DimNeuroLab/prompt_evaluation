@@ -1,8 +1,8 @@
 feature_name	prompt_command
 Topic - concise(1,NaN)	Describes the topic of conversation without splitting it in parts, e.g "let's talk about the human body" "how was your week" or "what do you think of me"
 Topic - broken down (1,NaN)	Describes the topic of conversation splitting it in parts, either by expliciting defining the parts e.g. "let's talk about the car structure, eg. engine, weel, tyres," either implicitly "tell me about your week, covering all its days one by one" or "tell me about a few aspects of your personality, one at time"
-1 Goal (1,NaN)	Contains one request only for the other conversation participant in the form of a verb, e.g. "explain", "teach", "ask"
-2 Goals (1,NaN)	Contains two requests only for the other conversation participant in the form of a verb, e.g. "explain this and make it interactive", "teach me and ask questions"
+1 Goal (1,NaN)	Contains only one request or command  in the form of a verb, e.g. "explain", "teach", "ask"
+2 Goals (1,NaN)	Contains exactly two requests in the form of a verb, e.g. explain and make in "explain this and make it interactive", teach and ask in "teach me and ask questions"
 >2 Goals (1,NaN)	Contains more than two requests for the other conversation participant in the form of a verb, e.g. "explain this and make it interactive by asking question", "teach me and ask questions, don't stop until every aspect is covered"
 AI role play (1,NaN)	Assignes a role to the other conversation participant through implicit forms using with role-related verbs as "please teach me", or  "diagnose me", or forms like "learn from you" or "taught by you" or forms like "act like", "could you be", "behave like", or "do <something> as a" followed by the role name, e.g. "doctor", "teacher", "scientist", "expert" or imp
 Role form/context(1,NaN)	Specify how the other conversation participant must perfom their role through forms like "act like" followed by role adjectives e.g. "careful", "reassuring", "funny" or forms like "with a  friendly attitude" or "in an interactive way" 
