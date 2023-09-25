@@ -19,7 +19,7 @@ features_filename = 'features_new'
 annotation_filename  = 'new_majority_annotations'
 FEATURES = pd.read_csv('data/'+features_filename+'.tsv', sep='\t')
 ANNOTATIONS = pd.read_csv('data/'+annotation_filename+'.tsv', sep='\t')
-
+the_feat ="1 Goal (1,NaN)"
 openai.api_key = get_api_key()
 model_name =   "gpt-3.5-turbo-instruct" #'text-davinci-003' # "gpt-3.5-turbo" # #"gpt-4"
 promptCreator=4
@@ -344,12 +344,9 @@ def evaluate_prompt_logits(eval_prompt, debug=True, shots=1,promptCreator=2):
     prompt_annotations = []
     prompt_annotations.append(eval_prompt)
 
-    for feature in feature_list:
-        print("feature")
-        print(feature)
 
     if True:
-        feature="ProvideOutPuts- Persona Pattern (1,Nan)"
+        feature=the_feat
         if promptCreator==1:
             eval_string,feature_description = createPrompt(eval_prompt,feature,shots)
         elif promptCreator==2:
