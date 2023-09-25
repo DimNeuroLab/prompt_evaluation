@@ -24,7 +24,7 @@ openai.api_key = get_api_key()
 model_name =   "gpt-3.5-turbo-instruct" #'text-davinci-003' # "gpt-3.5-turbo" # #"gpt-4"
 promptCreator=4
 shots=3
-num_runs= 4
+num_runs= 11
 
 
 
@@ -333,8 +333,8 @@ def createPromptRevised(eval_prompt, feature, shots):
     return eval_string, feature_description
 def evaluate_prompt_logits(eval_prompt, debug=True, shots=1,promptCreator=2):
     feature_list = FEATURES['feature_name'].tolist()
-    prompt_annotations = []
-    prompt_annotations.append(eval_prompt)
+    prompt_annotations = {}
+    prompt_annotations['prompt']=eval_prompt
 
     for feature in feature_list:
         if promptCreator==1:
@@ -450,8 +450,8 @@ def evaluate_prompt_logits(eval_prompt, debug=True, shots=1,promptCreator=2):
             global not_good_response
             not_good_response += 1
         print(response_value_Y, response_value_N)
-        prompt_annotations.append(response_value_Y)
-        prompt_annotations.append(response_value_N)
+        prompt_annotations[feature+'_Y']=response_value_Y
+        prompt_annotations[feature+'_N']=response_value_N
 
 
 
@@ -462,7 +462,8 @@ from itertools import product
 if __name__ == '__main__':
     global not_good_response
     not_good_response = 0
-    df_column_names_1 = [ b+a for a, b in product(["_Y","_N"], list(ANNOTATIONS.columns)[1:])]
+    df_column_names_1 = [ a+b for a, b in product( list(ANNOTATIONS.columns)[1:],["_Y","_N"])]
+
     print(df_column_names_1)
     df_column_names=[list(ANNOTATIONS.columns)[0]]
     df_column_names.extend(df_column_names_1)
@@ -486,6 +487,6 @@ if __name__ == '__main__':
 
 
         timestr = time.strftime("%Y%m%d-%H%M%S")
-        result_data = pd.DataFrame(np.array(df_values), columns=df_column_names)
+        result_data = pd.DataFrame(df_values, columns=df_column_names)
         result_data.to_csv('output/'+model_name+'_evaluation_log_shots_'+str(shots)+'promptgen_'+str(promptCreator)+"_features_file_"+features_filename+"_annotation_file_"+annotation_filename+'_'+timestr+'nobias.tsv', sep='\t', index=False)
 
