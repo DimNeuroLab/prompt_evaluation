@@ -15,4 +15,4 @@ PatternOrder- Persona Pattern (1,Nan)	Assignes a role to the other participant i
 StrictSeparationRoleVsOutput- Persona Pattern (1,Nan)	Assignes a role to the other participant in the conversation in the first sentence. In the next sentence specifies the type of statements that the other participant can produce while playing the required role.
 Feature 1: AskMeQuestions-FlippedPattern	contains a request to ask questions about a specific topic
 Feature 2: ConditionStop-FlippedPattern	specify the condition to stop asking questions
-Feature 3: Form-FlippedPattern:	specify how many questions must me made at each conversation turn
+Feature 3: Form-FlippedPattern:	specify how many questions must be made at each conversation turn
