@@ -29,9 +29,10 @@ def get_feature_wise_scores(true_df, pred_df, filename, filler=0):
         n_pred = pred_df[feature + '_N'].to_numpy()
 
         #y_pred[y_pred == -1] = filler
-        f_pred=np.stack((n_pred,y_pred))
-
+        f_pred=np.stack([n_pred,y_pred])
+        print(f_pred)
         f_pred=f_pred.argmax(0)
+        print(f_pred)
         accuracy_scores[feature] = accuracy_score(y_true, f_pred)
         f1_scores[feature] = f1_score(y_true, f_pred, average='macro')
     return accuracy_scores, f1_scores
