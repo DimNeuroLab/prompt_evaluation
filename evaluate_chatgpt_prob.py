@@ -41,7 +41,7 @@ def get_feature_wise_scores(true_df, pred_df, filename, filler=0):
 if __name__ == '__main__':
 
     ANNOTATIONS = pd.read_csv('data/annotations.tsv', sep='\t')
-    files = glob.glob("output/*bias.tsv")
+    files = glob.glob("output/gpt-3.5-turbo-instruct_evaluation_log_shots_3promptgen_6*.tsv")
     features_results_accuracy = []
     features_results_f1 = []
     prompt_results_accuracy = []
@@ -49,6 +49,8 @@ if __name__ == '__main__':
 
     for f in files:
         CHAT_GPT = pd.read_csv(f, sep='\t')
+        print('f')
+        print(f)
 
         # block below for feature-wise evaluation
         accuracy_scores, f1_scores = get_feature_wise_scores(ANNOTATIONS, CHAT_GPT,f)
