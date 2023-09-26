@@ -508,7 +508,7 @@ def evaluate_prompt_logits(eval_prompt, debug=True, shots=1,promptCreator=2):
     feature_list = FEATURES['feature_name'].tolist()
     prompt_annotations = {}
     prompt_annotations['prompt']=eval_prompt
-
+    ## Sathya be careful with this for loop it is inte opposite order of the new code
     for feature in feature_list:
         if promptCreator==1:
             eval_string,feature_description = createPrompt(eval_prompt,feature,shots)

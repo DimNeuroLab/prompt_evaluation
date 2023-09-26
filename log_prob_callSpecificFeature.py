@@ -16,15 +16,19 @@ from tenacity import (
 
 
 features_filename = 'features_new'
-annotation_filename  = 'new_majority_annotations'
+annotation_filename = 'new_majority_annotations'
 FEATURES = pd.read_csv('data/'+features_filename+'.tsv', sep='\t')
 ANNOTATIONS = pd.read_csv('data/'+annotation_filename+'.tsv', sep='\t')
-the_feat ="1 Goal (1,NaN)"
+the_feat = "1 Goal (1,NaN)"
+#feature_list = FEATURES['feature_name'].tolist()
 openai.api_key = get_api_key()
-model_name =   "gpt-3.5-turbo-instruct" #'text-davinci-003' # "gpt-3.5-turbo" # #"gpt-4"
-promptCreator=4
+model_name_det =   "gpt-3.5-turbo"
+model_name_prob =   "gpt-3.5-turbo-instruct" #'text-davinci-003' # "gpt-3.5-turbo" # #"gpt-4"
+promptCreator=0
 shots=2
 num_runs= 1
+eval_det = True
+eval_prob = True
 
 
 
@@ -94,7 +98,31 @@ class timeoutWindows:
         self.timer.cancel()
         #signal.alarm(0)
 
+def createPromptZero(eval_prompt, feature,shots):
+    feature_description = FEATURES.loc[FEATURES['feature_name'] == feature]['prompt_command'].iloc[0]
+    # include = FEATURES.loc[FEATURES['feature_name'] == feature]['include'].iloc[0]
+    positive_few_shot1 = get_positive_few_shot_example(feature, eval_prompt, shots=shots)
+    # positive_few_shot = ['Prompt ' + str(idx + 1) + ': ' + val for idx, val in enumerate(positive_few_shot)]
+    positive_few_shot1 = '\n'.join(positive_few_shot1)
+    negative_few_shot1 = get_negative_few_shot_example(feature, eval_prompt, shots=shots)
+    # negative_few_shot = ['Prompt ' + str(idx + 1) + ': ' + val for idx, val in enumerate(negative_few_shot)]
+    negative_few_shot1 = '\n'.join(negative_few_shot1)
 
+
+    eval_string = f"""Me: Check if this feature:
+            {feature_description}\n
+            is present in the following prompts, answer with YES or NO\n
+            {positive_few_shot1}\n
+            You: Yes\n
+            Me: and in the following prompt?
+            {negative_few_shot1}\n
+            You: No\n
+
+            Me: and in the following prompt?
+            {eval_prompt}\n
+            You: \n
+            """
+    return eval_string,feature_description
 def createPrompt(eval_prompt, feature,shots):
     feature_description = FEATURES.loc[FEATURES['feature_name'] == feature]['prompt_command'].iloc[0]
     # include = FEATURES.loc[FEATURES['feature_name'] == feature]['include'].iloc[0]
@@ -472,7 +500,7 @@ def createPromptRandom(eval_prompt, feature, shots):
     return eval_string, feature_description
 
 
-def createPromptRevised(eval_prompt, feature, shots):
+def createPromptRevised( eval_prompt, feature, shots):
     feature_description = FEATURES.loc[FEATURES['feature_name'] == feature]['prompt_command'].iloc[0]
     # include = FEATURES.loc[FEATURES['feature_name'] == feature]['include'].iloc[0]
     positive_few_shot1 = get_positive_few_shot_example(feature, eval_prompt, shots=shots)
@@ -509,39 +537,80 @@ def createPromptRevised(eval_prompt, feature, shots):
             You: \n
             """
     return eval_string, feature_description
-def evaluate_prompt_logits(eval_prompt, debug=True, shots=1,promptCreator=2):
-    feature_list = FEATURES['feature_name'].tolist()
+
+def createPromptGregor(eval_prompt, feature, shots):
+    feature_description = FEATURES.loc[FEATURES['feature_name'] == feature]['prompt_command'].iloc[0]
+    # include = FEATURES.loc[FEATURES['feature_name'] == feature]['include'].iloc[0]
+    positive_few_shot = get_positive_few_shot_example(feature, eval_prompt, shots=shots)
+    positive_few_shot = ['Prompt ' + str(idx + 1) + ': ' + val for idx, val in enumerate(positive_few_shot)]
+    positive_few_shot = '\n'.join(positive_few_shot)
+    negative_few_shot = get_negative_few_shot_example(feature, eval_prompt, shots=shots)
+    negative_few_shot = ['Prompt ' + str(idx + 1) + ': ' + val for idx, val in enumerate(negative_few_shot)]
+    negative_few_shot = '\n'.join(negative_few_shot)
+
+    eval_string = f"""Given the following feature:
+            {feature_description}\n
+            The feature is present in the following prompts:
+            {positive_few_shot}\n
+            The feature is not present in the following prompts:
+            {negative_few_shot}\n
+            Tell me whether the feature is present in the prompt given below. Formalize your output as a json object, where the key is the feature description and the associated value is 1 if the feature is present or 0 if not.\n
+            Prompt:
+            {eval_prompt}"""
+    return eval_string, feature_description
+def evaluate_prompt_both( featurelist,eval_prompt, debug=True, shots=1, promptCreator=2):
+
+    prompt_annotations = []
+    prompt_annotations.append(eval_prompt)
+
+    for feature in featurelist:
+
+        if promptCreator == 0:
+            eval_string, feature_description = createPromptZero(eval_prompt, feature, shots)
+        elif promptCreator == 1:
+            eval_string, feature_description = createPrompt(eval_prompt, feature, shots)
+        elif promptCreator == 2:
+            eval_string, feature_description = createPromptInverted(eval_prompt, feature, shots)
+        elif promptCreator == 3:
+            eval_string, feature_description = createPromptRevised(eval_prompt, feature, shots)
+        elif promptCreator == 4:
+            eval_string, feature_description = createPromptRandom(eval_prompt, feature, shots)
+        elif promptCreator == 5:
+            eval_string, feature_description = createPromptRandom2(eval_prompt, feature, shots)
+        elif promptCreator == 6:
+            eval_string, feature_description = createPromptRandom3(eval_prompt, feature, shots)
+
+        conversation = [{'role': 'system', 'content': eval_string}]
+        print('*' * 15 + "  eval string  " + '*' * 15)
+        print(eval_string)
+
+        print("ground truth")
+
+        print(get_true_label(feature, prompt))
+        eval_string_prob = eval_string
+        eval_string_det = eval_string
+        prompt_annotations_prob = None
+        prompt_annotations_det = None
+        if eval_prob:
+            prompt_annotations_prob = evaluate_prompt_logits(feature,eval_string_prob, feature_description,eval_prompt,  debug=False)
+        if eval_det:
+            prompt_annotations_det = evaluate_prompt_det(feature,eval_string_det, feature_description,conversation,eval_prompt,  debug=False)
+
+        return prompt_annotations_prob, prompt_annotations_det
+def evaluate_prompt_logits(feature,eval_string, feature_description, eval_prompt, debug=True):
+    #these must be defined in the outer loop in orde to integrate all the feature for all the prompts
     prompt_annotations = []
     prompt_annotations.append(eval_prompt)
 
 
     if True:
-        feature=the_feat
-        if promptCreator==1:
-            eval_string,feature_description = createPrompt(eval_prompt,feature,shots)
-        elif promptCreator==2:
-            eval_string, feature_description = createPromptInverted(eval_prompt, feature, shots)
-        elif promptCreator==3:
-            eval_string, feature_description = createPromptRevised(eval_prompt, feature, shots)
-        elif promptCreator==4:
-            eval_string, feature_description = createPromptRandom(eval_prompt, feature, shots)
-        elif promptCreator==5:
-            eval_string, feature_description = createPromptRandom2(eval_prompt, feature, shots)
-        elif promptCreator==6:
-            eval_string, feature_description = createPromptRandom3(eval_prompt, feature, shots)
 
 
-        conversation = [{'role': 'system', 'content': eval_string}]
-        print('*'*15 + "  eval string  "+'*'*15)
-        print(eval_string)
 
-        print("ground truth")
-        gt=get_true_label(feature,prompt)
-        print(get_true_label(feature,prompt))
         response = None
         if debug:
             print(50*'*', feature)
-            print(eval_string)
+            #print(eval_string)
         #    response = {feature_description: -1}
         else:
             max_attempts = 5
@@ -569,11 +638,12 @@ def evaluate_prompt_logits(eval_prompt, debug=True, shots=1,promptCreator=2):
                                                     Out[6]: [[3363], [1400]]
                                                     '''
                         response = completion_with_backoff(
-                            model=model_name, #'text-davinci-003',
+                            model=model_name_prob, #'text-davinci-003',
                             prompt=eval_string,
                             max_tokens=1,
                             temperature=0,
                             logprobs=2,
+                            #messages=conversation,
 
                             logit_bias={
                                 # 15: 100.0,  # 0
@@ -619,6 +689,7 @@ def evaluate_prompt_logits(eval_prompt, debug=True, shots=1,promptCreator=2):
 
 
         if response is not None and (response['choices'][0]["logprobs"]["tokens"][0] in YES_string_set or response['choices'][0]["logprobs"]["tokens"][0] in NO_string_set):
+            gt = get_true_label(feature, prompt)
             if response['choices'][0]["logprobs"]["tokens"][0] in YES_string_set:
                 print("\n\n*************** RESPONSE YES ****************\n\n")
                 if gt[0]!=1:
@@ -626,15 +697,15 @@ def evaluate_prompt_logits(eval_prompt, debug=True, shots=1,promptCreator=2):
             elif response['choices'][0]["logprobs"]["tokens"][0] in NO_string_set:
 
                 print("\n\n*************** RESPONSE NO ****************\n\n" )
-                if gt[0]!=1:
+                if gt[0]!=0:
                     print("MESSMESSMESSMESSMESSMESSMESSMESSMESSMESS")
             else:
                 print("\n\n*************** RESPONSE UFO ****************\n\n")
                 print("MESSMESSMESSMESSMESSMESSMESSMESSMESSMESS")
-            print('*' * 15 + "  response  " + '*' * 15)
+            print('*' * 15 + "  response prob  " + '*' * 15)
             #print("**** response ****")
             print(response)
-            print('*' * 15 + "  response  log probs " + '*' * 15)
+
             value=response['choices'][0]["logprobs"]["token_logprobs"][0]
             if response['choices'][0]["logprobs"]["tokens"][0] in YES_string_set:
                 response_value_Y =value
@@ -654,8 +725,47 @@ def evaluate_prompt_logits(eval_prompt, debug=True, shots=1,promptCreator=2):
         prompt_annotations.append(response_value_Y)
         prompt_annotations.append(response_value_N)
 
+    return prompt_annotations
 
 
+def evaluate_prompt_det( feature,eval_string,feature_description, conversation,eval_prompt, debug=True):
+    feature_list = FEATURES['feature_name'].tolist()
+    prompt_annotations = []
+    prompt_annotations.append(eval_prompt)
+
+    if True:
+
+        if debug:
+            print(50*'*', feature)
+            #print(eval_string)
+            response = {feature_description: -1}
+        else:
+            try:
+                response = openai.ChatCompletion.create(
+                    model=model_name_det,
+                    messages=conversation
+                )
+                print("DETERMINISTIC RESPONSE1")
+                print("DETERMINISTIC RESPONSE2")
+                print("DETERMINISTIC RESPONSE3")
+                print(response)
+                response_parsed=response['choices'][0]['message']['content']
+                #response_parsed = json.loads(response['choices'][0]['message']['content'])
+            except:
+                print("DETERMINISTIC RESPONSE14")
+                print("DETERMINISTIC RESPONSE25")
+                print("DETERMINISTIC RESPONSE36")
+                print(response)
+                #print(eval_string)
+                response_parsed = {feature_description: -1}
+
+        try:
+            key = list(response.keys())[0]
+            response_value = int(response_parsed[key])
+        except:
+            print(response_parsed)
+            response_value = -1
+        prompt_annotations.append(response_value)
 
     return prompt_annotations
 
@@ -664,7 +774,7 @@ if __name__ == '__main__':
     global not_good_response
     not_good_response = 0
     #df_column_names_1 = [ b+a for a, b in product(["_Y","_N"], list(ANNOTATIONS.columns)[1:])]
-    df_column_names_1 = [ b+a for a, b in product(["_Y","_N"],["ProvideOutPuts- Persona Pattern (1,Nan)"])]
+    df_column_names_1 = [ b+a for a, b in product(["_Y","_N"],[the_feat])]
     print(df_column_names_1)
     df_column_names=[list(ANNOTATIONS.columns)[0]]
     df_column_names.extend(df_column_names_1)
@@ -676,7 +786,10 @@ if __name__ == '__main__':
         prompts = ANNOTATIONS['prompt'].tolist()
         for prompt in tqdm(prompts):
             # set debug=False to do actual API calls
-            prompt_annotations = evaluate_prompt_logits(prompt, debug=False, shots=shots,promptCreator=promptCreator)
+            # SATHYA MAKE THSI A loop over features
+            prompt_annotations,_ = evaluate_prompt_both([the_feat],prompt, debug=False, shots=shots,promptCreator=promptCreator)
+            prompt_annotations["feature"]=the_feat
+            #SATHA check the best for this prompt_annotations["feature"]=the_feat .
             df_values.append(prompt_annotations)
 
 
@@ -689,5 +802,5 @@ if __name__ == '__main__':
 
         timestr = time.strftime("%Y%m%d-%H%M%S")
         result_data = pd.DataFrame(np.array(df_values), columns=df_column_names)
-        result_data.to_csv('output/single_feature/'+model_name+'_evaluation_log_shots_'+str(shots)+'promptgen_'+str(promptCreator)+"_features_file_"+features_filename+"_annotation_file_"+annotation_filename+'_'+timestr+'nobias.tsv', sep='\t', index=False)
+        result_data.to_csv('output/single_feature/'+model_name_prob+' '+model_name_det+'_evaluation_log_shots_'+str(shots)+'promptgen_'+str(promptCreator)+"_features_file_"+features_filename+"_annotation_file_"+annotation_filename+'_'+timestr+'nobias.tsv', sep='\t', index=False)
 
