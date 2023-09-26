@@ -787,11 +787,11 @@ if __name__ == '__main__':
         for prompt in tqdm(prompts):
             # set debug=False to do actual API calls
             # SATHYA MAKE THSI A loop over features
-            prompt_annotations,_ = evaluate_prompt_both([the_feat],prompt, debug=False, shots=shots,promptCreator=promptCreator)
+            prompt_annotations,det_annotations = evaluate_prompt_both([the_feat],prompt, debug=False, shots=shots,promptCreator=promptCreator)
             prompt_annotations["feature"]=the_feat
             #SATHA check the best for this prompt_annotations["feature"]=the_feat .
             df_values.append(prompt_annotations)
-
+#sathya remember to save det_annotations
 
 
 
