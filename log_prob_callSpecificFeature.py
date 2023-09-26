@@ -22,8 +22,8 @@ ANNOTATIONS = pd.read_csv('data/'+annotation_filename+'.tsv', sep='\t')
 the_feat ="1 Goal (1,NaN)"
 openai.api_key = get_api_key()
 model_name =   "gpt-3.5-turbo-instruct" #'text-davinci-003' # "gpt-3.5-turbo" # #"gpt-4"
-promptCreator=3
-shots=3
+promptCreator=4
+shots=1
 num_runs= 1
 
 
