@@ -15,14 +15,14 @@ from tenacity import (
 )  # for exponential backoff
 
 
-features_filename = 'features'
+features_filename = 'features_new'
 annotation_filename  = 'new_majority_annotations'
 FEATURES = pd.read_csv('data/'+features_filename+'.tsv', sep='\t')
 ANNOTATIONS = pd.read_csv('data/'+annotation_filename+'.tsv', sep='\t')
 the_feat ="1 Goal (1,NaN)"
 openai.api_key = get_api_key()
 model_name =   "gpt-3.5-turbo-instruct" #'text-davinci-003' # "gpt-3.5-turbo" # #"gpt-4"
-promptCreator=1
+promptCreator=4
 shots=2
 num_runs= 1
 
