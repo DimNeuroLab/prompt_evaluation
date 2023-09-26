@@ -22,8 +22,8 @@ ANNOTATIONS = pd.read_csv('data/'+annotation_filename+'.tsv', sep='\t')
 the_feat ="1 Goal (1,NaN)"
 openai.api_key = get_api_key()
 model_name =   "gpt-3.5-turbo-instruct" #'text-davinci-003' # "gpt-3.5-turbo" # #"gpt-4"
-promptCreator=6
-shots=1
+promptCreator=3
+shots=3
 num_runs= 1
 
 
@@ -689,5 +689,5 @@ if __name__ == '__main__':
 
         timestr = time.strftime("%Y%m%d-%H%M%S")
         result_data = pd.DataFrame(np.array(df_values), columns=df_column_names)
-        result_data.to_csv('output/'+model_name+'_evaluation_log_shots_'+str(shots)+'promptgen_'+str(promptCreator)+"_features_file_"+features_filename+"_annotation_file_"+annotation_filename+'_'+timestr+'nobias.tsv', sep='\t', index=False)
+        result_data.to_csv('output/single_feature/'+model_name+'_evaluation_log_shots_'+str(shots)+'promptgen_'+str(promptCreator)+"_features_file_"+features_filename+"_annotation_file_"+annotation_filename+'_'+timestr+'nobias.tsv', sep='\t', index=False)
 
