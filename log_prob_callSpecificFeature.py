@@ -15,7 +15,7 @@ from tenacity import (
 )  # for exponential backoff
 
 
-features_filename = 'features_new_revised_goals'
+features_filename = 'features'
 annotation_filename  = 'new_majority_annotations'
 FEATURES = pd.read_csv('data/'+features_filename+'.tsv', sep='\t')
 ANNOTATIONS = pd.read_csv('data/'+annotation_filename+'.tsv', sep='\t')
