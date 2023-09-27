@@ -1,11 +1,11 @@
-import sys
-from tqdm import tqdm
-import pandas as pd
 import json
+
 import numpy as np
 import openai
-from utils import get_api_key
+import pandas as pd
+from tqdm import tqdm
 
+from utils import get_api_key
 
 FEATURES = pd.read_csv('data/features.tsv', sep='\t')
 ANNOTATIONS = pd.read_csv('data/annotations.tsv', sep='\t')
@@ -59,7 +59,7 @@ def evaluate_prompt(eval_prompt, debug=True, shots=1):
         conversation = [{'role': 'system', 'content': eval_string}]
 
         if debug:
-            print(50*'*', feature)
+            print(50 * '*', feature)
             print(eval_string)
             response = {feature_description: -1}
         else:

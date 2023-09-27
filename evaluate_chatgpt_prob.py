@@ -25,13 +25,13 @@ def get_feature_wise_scores(true_df, pred_df, filename, filler=0):
     f1_scores['run'] = f
     for feature in list(true_df.columns)[1:]:
         y_true = true_df[feature].tolist()
-        y_pred = pred_df[feature+'_Y'].to_numpy()
+        y_pred = pred_df[feature + '_Y'].to_numpy()
         n_pred = pred_df[feature + '_N'].to_numpy()
 
-        #y_pred[y_pred == -1] = filler
-        f_pred=np.stack([n_pred,y_pred])
+        # y_pred[y_pred == -1] = filler
+        f_pred = np.stack([n_pred, y_pred])
         print(f_pred)
-        f_pred=f_pred.argmax(0)
+        f_pred = f_pred.argmax(0)
         print(f_pred)
         accuracy_scores[feature] = accuracy_score(y_true, f_pred)
         f1_scores[feature] = f1_score(y_true, f_pred, average='macro')
@@ -53,7 +53,7 @@ if __name__ == '__main__':
         print(f)
 
         # block below for feature-wise evaluation
-        accuracy_scores, f1_scores = get_feature_wise_scores(ANNOTATIONS, CHAT_GPT,f)
+        accuracy_scores, f1_scores = get_feature_wise_scores(ANNOTATIONS, CHAT_GPT, f)
         print('ACC', accuracy_scores, sep='\n')
         print('F1', f1_scores, sep='\n')
         features_results_f1.append(f1_scores)
@@ -61,7 +61,7 @@ if __name__ == '__main__':
 
     result_data = pd.DataFrame(features_results_f1)
     result_data.to_csv('output\evaluation_prob_runs_f1.tsv',
-                           sep='\t', index=False)
+                       sep='\t', index=False)
     result_data = pd.DataFrame(features_results_accuracy)
     result_data.to_csv('output\evaluation_prob_runs_accuracy.tsv',
                        sep='\t', index=False)

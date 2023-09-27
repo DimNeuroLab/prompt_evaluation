@@ -2,3 +2,4 @@ openai
 tqdm
 pandas
 scikit-learn
+tenacity

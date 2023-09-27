@@ -1,7 +1,7 @@
-from sklearn.tree import DecisionTreeClassifier
-from sklearn.ensemble import RandomForestClassifier
 import pandas as pd
+from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import accuracy_score, f1_score
+from sklearn.tree import DecisionTreeClassifier
 
 
 def get_feature_importance(df, method='dt'):
@@ -30,8 +30,6 @@ def get_feature_importance(df, method='dt'):
 
 if __name__ == '__main__':
     DATA = pd.read_csv('data/all_features_annotated.tsv', sep='\t')
-    #i_dict = get_feature_importance(DATA, method='dt')
-    #print(i_dict)
 
     i_dict = get_feature_importance(DATA, method='rf')
     print(i_dict)

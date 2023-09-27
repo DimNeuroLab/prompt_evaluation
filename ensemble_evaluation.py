@@ -1,7 +1,7 @@
-import os
-import sys
 import numpy as np
+import os
 import pandas as pd
+import sys
 from scipy.stats import mode
 from sklearn.metrics import accuracy_score, f1_score
 
@@ -61,10 +61,11 @@ if __name__ == '__main__':
     relevant_files_str = 'gpt-3.5-turbo-instruct_evaluation_log_shots_3promptgen_4_features_file_features_new_annotation_file_new_majority_annotations'
 
     all_files = os.listdir('output')
-    all_files = [f for f in all_files if (f[:len(relevant_files_str)] == relevant_files_str and len(f) <= len(relevant_files_str) + 20)]
+    all_files = [f for f in all_files if
+                 (f[:len(relevant_files_str)] == relevant_files_str and len(f) <= len(relevant_files_str) + 20)]
 
-    #print(len(all_files))
-    #sys.exit(0)
+    # print(len(all_files))
+    # sys.exit(0)
 
     features_results_accuracy = []
     features_results_f1 = []

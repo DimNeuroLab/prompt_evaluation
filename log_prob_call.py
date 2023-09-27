@@ -1,36 +1,35 @@
-import sys
-from tqdm import tqdm
-import pandas as pd
-import json
-import numpy as np
-import openai
 import signal
-from utils import get_api_key
 import threading
 import time
+
+import numpy as np
+import openai
+import pandas as pd
 from tenacity import (
     retry,
     stop_after_attempt,
     wait_random_exponential,
 )  # for exponential backoff
+from tqdm import tqdm
 
+from utils import get_api_key
 
 features_filename = 'features_new_revised_goals'
-annotation_filename  = 'new_majority_annotations'
-FEATURES = pd.read_csv('data/'+features_filename+'.tsv', sep='\t')
-ANNOTATIONS = pd.read_csv('data/'+annotation_filename+'.tsv', sep='\t')
+annotation_filename = 'new_majority_annotations'
+FEATURES = pd.read_csv('data/' + features_filename + '.tsv', sep='\t')
+ANNOTATIONS = pd.read_csv('data/' + annotation_filename + '.tsv', sep='\t')
 
 openai.api_key = get_api_key()
-model_name =   "gpt-3.5-turbo-instruct" #'text-davinci-003' # "gpt-3.5-turbo" # #"gpt-4"
-promptCreator=6
-shots=3
-num_runs= 5
-
+model_name = "gpt-3.5-turbo-instruct"  # 'text-davinci-003' # "gpt-3.5-turbo" # #"gpt-4"
+promptCreator = 6
+shots = 3
+num_runs = 5
 
 
 @retry(wait=wait_random_exponential(min=1, max=240), stop=stop_after_attempt(4))
 def completion_with_backoff(**kwargs):
     return openai.Completion.create(**kwargs)
+
 
 def get_positive_few_shot_example(feature_name, prompt, shots=1):
     relevant = ANNOTATIONS[['prompt', feature_name]]
@@ -69,25 +68,25 @@ class timeoutLinux:
 class timeoutWindows:
     def __init__(self, seconds=1, error_message='Timeout '):
         self.seconds = seconds
-        self.error_message = error_message +' '+str(seconds)
+        self.error_message = error_message + ' ' + str(seconds)
 
     def handle_timeout(self):
         print("timemout")
         raise TimeoutError(self.error_message)
 
     def __enter__(self):
-        #signal.signal(signal.SIGALRM, self.handle_timeout)
-        #signal.alarm(self.seconds)
-        print("seconds",self.seconds)
-        self.timer=threading.Timer(self.seconds,self.handle_timeout)
+        # signal.signal(signal.SIGALRM, self.handle_timeout)
+        # signal.alarm(self.seconds)
+        print("seconds", self.seconds)
+        self.timer = threading.Timer(self.seconds, self.handle_timeout)
         self.timer.start()
 
     def __exit__(self, type, value, traceback):
         self.timer.cancel()
-        #signal.alarm(0)
+        # signal.alarm(0)
 
 
-def createPrompt(eval_prompt, feature,shots):
+def createPrompt(eval_prompt, feature, shots):
     feature_description = FEATURES.loc[FEATURES['feature_name'] == feature]['prompt_command'].iloc[0]
     # include = FEATURES.loc[FEATURES['feature_name'] == feature]['include'].iloc[0]
     positive_few_shot1 = get_positive_few_shot_example(feature, eval_prompt, shots=shots)
@@ -124,9 +123,10 @@ def createPrompt(eval_prompt, feature,shots):
             {eval_prompt}\n
             You: \n
             """
-    return eval_string,feature_description
+    return eval_string, feature_description
 
-def createPromptInverted(eval_prompt, feature,shots):
+
+def createPromptInverted(eval_prompt, feature, shots):
     '''
 
     :param eval_prompt:
@@ -206,7 +206,7 @@ def createPromptInverted(eval_prompt, feature,shots):
             {eval_prompt}\n
             You: \n
             """
-    return eval_string,feature_description
+    return eval_string, feature_description
 
 
 def createPromptRandom(eval_prompt, feature, shots):
@@ -266,19 +266,19 @@ def createPromptRandom(eval_prompt, feature, shots):
         # positive_few_shot = ['Prompt ' + str(idx + 1) + ': ' + val for idx, val in enumerate(positive_few_shot)]
         positive_few_shot[i] = '\n'.join(positive_few_shot[i])
         negative_few_shot.append(get_negative_few_shot_example(feature, eval_prompt, shots=1))
-    # negative_few_shot = ['Prompt ' + str(idx + 1) + ': ' + val for idx, val in enumerate(negative_few_shot)]
+        # negative_few_shot = ['Prompt ' + str(idx + 1) + ': ' + val for idx, val in enumerate(negative_few_shot)]
         negative_few_shot[i] = '\n'.join(negative_few_shot[i])
-        if np.random.choice(2, 1)==1:
-            newsubstring=f"""
+        if np.random.choice(2, 1) == 1:
+            newsubstring = f"""
             {negative_few_shot[i]}\n
             You: No\n
             Me: and in the following prompt?\n
             {positive_few_shot[i]}\n
             You: Yes\n
             Me: and in the following prompt?\n"""
-            eval_string+=newsubstring
+            eval_string += newsubstring
         else:
-            eval_string+=f"""
+            eval_string += f"""
             {positive_few_shot[i]}\n
             You: Yes\n
             Me: and in the following prompt?\n
@@ -331,6 +331,7 @@ def createPromptRevised(eval_prompt, feature, shots):
             You: \n
             """
     return eval_string, feature_description
+
 
 def createPromptRandom2(eval_prompt, feature, shots):
     '''
@@ -390,19 +391,19 @@ def createPromptRandom2(eval_prompt, feature, shots):
         # positive_few_shot = ['Prompt ' + str(idx + 1) + ': ' + val for idx, val in enumerate(positive_few_shot)]
         positive_few_shot[i] = '\n'.join(positive_few_shot[i])
         negative_few_shot.append(get_negative_few_shot_example(feature, eval_prompt, shots=1))
-    # negative_few_shot = ['Prompt ' + str(idx + 1) + ': ' + val for idx, val in enumerate(negative_few_shot)]
+        # negative_few_shot = ['Prompt ' + str(idx + 1) + ': ' + val for idx, val in enumerate(negative_few_shot)]
         negative_few_shot[i] = '\n'.join(negative_few_shot[i])
-        if np.random.choice(2, 1)==1:
-            newsubstring=f"""
+        if np.random.choice(2, 1) == 1:
+            newsubstring = f"""
             {negative_few_shot[i]}\n
             You: No\n
             Me: to the following prompt:\n
             {positive_few_shot[i]}\n
             You: Yes\n
             Me: to the following prompt:\n"""
-            eval_string+=newsubstring
+            eval_string += newsubstring
         else:
-            eval_string+=f"""
+            eval_string += f"""
             {positive_few_shot[i]}\n
             You: Yes\n
             Me: to the following prompt:\n
@@ -416,6 +417,7 @@ def createPromptRandom2(eval_prompt, feature, shots):
             """
 
     return eval_string, feature_description
+
 
 def createPromptRandom3(eval_prompt, feature, shots):
     '''
@@ -475,19 +477,19 @@ def createPromptRandom3(eval_prompt, feature, shots):
         # positive_few_shot = ['Prompt ' + str(idx + 1) + ': ' + val for idx, val in enumerate(positive_few_shot)]
         positive_few_shot[i] = '\n'.join(positive_few_shot[i])
         negative_few_shot.append(get_negative_few_shot_example(feature, eval_prompt, shots=1))
-    # negative_few_shot = ['Prompt ' + str(idx + 1) + ': ' + val for idx, val in enumerate(negative_few_shot)]
+        # negative_few_shot = ['Prompt ' + str(idx + 1) + ': ' + val for idx, val in enumerate(negative_few_shot)]
         negative_few_shot[i] = '\n'.join(negative_few_shot[i])
-        if np.random.choice(2, 1)==1:
-            newsubstring=f"""
+        if np.random.choice(2, 1) == 1:
+            newsubstring = f"""
             {negative_few_shot[i]}\n
             You: No\n
             Me: to the following prompt:\n
             {positive_few_shot[i]}\n
             You: Yes\n
             Me: to the following prompt:\n"""
-            eval_string+=newsubstring
+            eval_string += newsubstring
         else:
-            eval_string+=f"""
+            eval_string += f"""
             {positive_few_shot[i]}\n
             You: Yes\n
             Me: to the following prompt:\n
@@ -503,20 +505,19 @@ def createPromptRandom3(eval_prompt, feature, shots):
     return eval_string, feature_description
 
 
-
-def evaluate_prompt_logits(eval_prompt, debug=True, shots=1,promptCreator=2):
+def evaluate_prompt_logits(eval_prompt, debug=True, shots=1, promptCreator=2):
     feature_list = FEATURES['feature_name'].tolist()
     prompt_annotations = {}
-    prompt_annotations['prompt']=eval_prompt
-    ## Sathya be careful with this for loop it is inte opposite order of the new code
+    prompt_annotations['prompt'] = eval_prompt
+    ## Sathya be careful with this for loop it is in the opposite order of the new code
     for feature in feature_list:
-        if promptCreator==1:
-            eval_string,feature_description = createPrompt(eval_prompt,feature,shots)
-        elif promptCreator==2:
+        if promptCreator == 1:
+            eval_string, feature_description = createPrompt(eval_prompt, feature, shots)
+        elif promptCreator == 2:
             eval_string, feature_description = createPromptInverted(eval_prompt, feature, shots)
-        elif promptCreator==3:
+        elif promptCreator == 3:
             eval_string, feature_description = createPromptRevised(eval_prompt, feature, shots)
-        elif promptCreator==4:
+        elif promptCreator == 4:
             eval_string, feature_description = createPromptRandom(eval_prompt, feature, shots)
         elif promptCreator == 5:
             eval_string, feature_description = createPromptRandom2(eval_prompt, feature, shots)
@@ -524,11 +525,11 @@ def evaluate_prompt_logits(eval_prompt, debug=True, shots=1,promptCreator=2):
             eval_string, feature_description = createPromptRandom3(eval_prompt, feature, shots)
 
         conversation = [{'role': 'system', 'content': eval_string}]
-        print('*'*15 + "  eval string  "+'*'*15)
+        print('*' * 15 + "  eval string  " + '*' * 15)
         print(eval_string)
         response = None
         if debug:
-            print(50*'*', feature)
+            print(50 * '*', feature)
             print(eval_string)
         #    response = {feature_description: -1}
         else:
@@ -537,27 +538,8 @@ def evaluate_prompt_logits(eval_prompt, debug=True, shots=1,promptCreator=2):
                 try:
                     time.sleep(0.5)
                     with timeoutWindows(seconds=100):
-                        '''
-                        response = openai.ChatCompletion.create(
-                            model=model_name,
-                            messages=conversation,
-                            temperature=0,
-                            logit_bias={
-                                15: 100.0,  # 0
-                                16: 100.0,  # 1
-                            }
-                        )
-                        '''
-                        '''
-                                                    import tiktoke
-                                                    tokenizer = tiktoken.encoding_for_model("text-davinci-003")
-                                                    tokens = [" Yes", " No"]
-                                                    ids = [tokenizer.encode(token) for token in tokens]
-                                                    ids
-                                                    Out[6]: [[3363], [1400]]
-                                                    '''
                         response = completion_with_backoff(
-                            model=model_name, #'text-davinci-003',
+                            model=model_name,  # 'text-davinci-003',
                             prompt=eval_string,
                             max_tokens=1,
                             temperature=0,
@@ -566,83 +548,70 @@ def evaluate_prompt_logits(eval_prompt, debug=True, shots=1,promptCreator=2):
                             logit_bias={
                                 # 15: 100.0,  # 0
                                 # 16: 100.0,  # 1
-                                #15285: 100.0,   #YES
+                                # 15285: 100.0,   #YES
 
-                                #43335: 100.0,    # YES
-                                #15285: 100.0,    #NO
-                                #8005: 100.0     # NO
-                                #3363: 1, # " Yes"
-                                #1400: 1 # " No"
+                                # 43335: 100.0,    # YES
+                                # 15285: 100.0,    #NO
+                                # 8005: 100.0     # NO
+                                # 3363: 1, # " Yes"
+                                # 1400: 1 # " No"
 
                             },
 
                         )
-                        '''
-                        2 runs no logit bias
-                        
-                        "Yes": -0.12884715,
-                        " Yes": -2.1852436
-                        "Yes": -0.42685947,
-                        " Yes": -1.0789018
-                        
-                        
-                        '''
-                        YES_string_set={"Yes","YES","Y"," Yes"," YES"," Y","Yes ","YES ","Y "," Yes "," YES "," Y ",}
+                        YES_string_set = {"Yes", "YES", "Y", " Yes", " YES", " Y", "Yes ", "YES ", "Y ", " Yes ",
+                                          " YES ", " Y ", }
                         NO_string_set = {"No", "NO", "N", " No", " NO", " N", "No ", "NO ", "N ", " No ", " NO ",
-                                      " N", }
+                                         " N", }
 
-
-                        if (response['choices'][0]["logprobs"]["tokens"][0] in YES_string_set or response['choices'][0]["logprobs"]["tokens"][0] in NO_string_set):
+                        if (response['choices'][0]["logprobs"]["tokens"][0] in YES_string_set or
+                                response['choices'][0]["logprobs"]["tokens"][0] in NO_string_set):
                             break
                         else:
                             print('+' * 80)
                             print("bad response")
                             print(response)
-                            print('+'*80)
+                            print('+' * 80)
                 except Exception as EXX:
                     print("exx")
                     print(EXX)
                     print('Timeout, retrying...')
                     pass
 
-
-        if response is not None and (response['choices'][0]["logprobs"]["tokens"][0] in YES_string_set or response['choices'][0]["logprobs"]["tokens"][0] in NO_string_set):
+        if response is not None and (response['choices'][0]["logprobs"]["tokens"][0] in YES_string_set or
+                                     response['choices'][0]["logprobs"]["tokens"][0] in NO_string_set):
             print('*' * 15 + "  response  " + '*' * 15)
-            #print("**** response ****")
+            # print("**** response ****")
             print(response)
             print('*' * 15 + "  response  log probs " + '*' * 15)
-            value=response['choices'][0]["logprobs"]["token_logprobs"][0]
+            value = response['choices'][0]["logprobs"]["token_logprobs"][0]
             if response['choices'][0]["logprobs"]["tokens"][0] in YES_string_set:
-                response_value_Y =value
+                response_value_Y = value
                 response_value_N = -100
             else:
                 response_value_Y = -100
                 response_value_N = value
-
-            # response = json.loads(response['choices'][0]['message']['content'])
-            #sys.exit(0)
         else:
             response_value_Y = -100
             response_value_N = -100
             global not_good_response
             not_good_response += 1
         print(response_value_Y, response_value_N)
-        prompt_annotations[feature+'_Y']=response_value_Y
-        prompt_annotations[feature+'_N']=response_value_N
-
-
-
+        prompt_annotations[feature + '_Y'] = response_value_Y
+        prompt_annotations[feature + '_N'] = response_value_N
 
     return prompt_annotations
 
+
 from itertools import product
+
 if __name__ == '__main__':
     global not_good_response
     not_good_response = 0
-    df_column_names_1 = [ a+b for a, b in product( list(ANNOTATIONS.columns)[1:],["_Y","_N"])]
+    df_column_names_1 = [a + b for a, b in product(list(ANNOTATIONS.columns)[1:], ["_Y", "_N"])]
 
     print(df_column_names_1)
-    df_column_names=[list(ANNOTATIONS.columns)[0]]
+    df_column_names = [list(ANNOTATIONS.columns)[0]]
     df_column_names.extend(df_column_names_1)
     print(list(ANNOTATIONS.columns))
     print(df_column_names)
@@ -652,18 +621,14 @@ if __name__ == '__main__':
         prompts = ANNOTATIONS['prompt'].tolist()
         for prompt in tqdm(prompts):
             # set debug=False to do actual API calls
-            prompt_annotations = evaluate_prompt_logits(prompt, debug=False, shots=shots,promptCreator=promptCreator)
+            prompt_annotations = evaluate_prompt_logits(prompt, debug=False, shots=shots, promptCreator=promptCreator)
             df_values.append(prompt_annotations)
-
-
-
 
         print("not good response")
         print(not_good_response)
 
-
-
         timestr = time.strftime("%Y%m%d-%H%M%S")
         result_data = pd.DataFrame(df_values, columns=df_column_names)
-        result_data.to_csv('output/'+model_name+'_evaluation_log_shots_'+str(shots)+'promptgen_'+str(promptCreator)+"_features_file_"+features_filename+"_annotation_file_"+annotation_filename+'_'+timestr+'nobias.tsv', sep='\t', index=False)
-
+        result_data.to_csv('output/' + model_name + '_evaluation_log_shots_' + str(shots) + 'promptgen_' + str(
+            promptCreator) + "_features_file_" + features_filename + "_annotation_file_" + annotation_filename + '_' + timestr + 'nobias.tsv',
+                           sep='\t', index=False)

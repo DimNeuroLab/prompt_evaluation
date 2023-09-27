@@ -2,7 +2,6 @@ import json
 from utils import get_api_key
 import openai
 
-
 CLASSIFICATION_PROMPT = """
 Given the following feature:
     {feature_description}
@@ -37,16 +36,17 @@ CLASSIFICATION_FUNCTION = [
     }
 ]
 
+
 def classify_feature_presence(
-    feature_description: str, 
-    positive_few_shot: str, 
-    negative_few_shot: str,
-    eval_prompt: str,
-    model: str
+        feature_description: str,
+        positive_few_shot: str,
+        negative_few_shot: str,
+        eval_prompt: str,
+        model: str
 ) -> bool:
     messages = [
         {
-            "role": "user", 
+            "role": "user",
             "content": CLASSIFICATION_PROMPT.format(
                 feature_description=feature_description,
                 positive_few_shot=positive_few_shot,
@@ -55,7 +55,7 @@ def classify_feature_presence(
             )
         }
     ]
-    
+
     response = openai.ChatCompletion.create(
         model=model,
         messages=messages,
@@ -76,8 +76,8 @@ def _test():
     NEGATIVE_FEW_SHOT = "I want you to teach me the disadvantages of social media according to my personal information like age, level of education, & culture."
     EVAL_PROMPT = "Please teach me the disadvantages of social media considering my age, level of education, and culture in an interactive manner.\
         Doing this, try to be more interactive by asking me questions."
-    MODEL="gpt-3.5-turbo"
-    
+    MODEL = "gpt-3.5-turbo"
+
     feature_is_present = classify_feature_presence(
         feature_description=FEATURE_DESCRIPTION,
         positive_few_shot=POSITIVE_FEW_SHOT,
@@ -85,11 +85,11 @@ def _test():
         eval_prompt=EVAL_PROMPT,
         model=MODEL
     )
-    
+
     print(feature_is_present)
-    
+
     EVAL_PROMPT = "Please teach me what are some disadvantages of using social media in an interactive manner by considering my age, educational level, & culture."
-    
+
     feature_is_present = classify_feature_presence(
         feature_description=FEATURE_DESCRIPTION,
         positive_few_shot=POSITIVE_FEW_SHOT,
@@ -97,7 +97,7 @@ def _test():
         eval_prompt=EVAL_PROMPT,
         model=MODEL
     )
-    
+
     print(feature_is_present)
 
 
