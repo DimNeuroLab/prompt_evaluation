@@ -148,7 +148,6 @@ def validate_response(response):
 
 
 if __name__ == "__main__":
-
     df_column_names = list(ANNOTATIONS.columns)
     df_values = []
 
