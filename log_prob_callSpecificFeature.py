@@ -549,6 +549,10 @@ def evaluate_prompt_logits(feature, eval_string, feature_description, eval_promp
         value = response['choices'][0]["logprobs"]["token_logprobs"][0]
         response_value_Y = value if response['choices'][0]["logprobs"]["tokens"][0] in YES_STRINGS else -100
         response_value_N = value if response['choices'][0]["logprobs"]["tokens"][0] in NO_STRINGS else -100
+    ### SATHYA COMPARE value  WITH GT TRUTH TO test it gives
+    ###        the same results of evaluate_chat_GPT_prob
+    ###        we must be sure that evaluate_cahgGPT_prob
+    ### evalaute_chatgpt and ensemble load the data in the right order
     else:
         response_value_Y = response_value_N = -100
         not_good_response += 1
