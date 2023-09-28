@@ -3,29 +3,18 @@ import pandas as pd
 from sklearn.metrics import accuracy_score, f1_score
 
 
-def get_prompt_wise_scores(true_df, pred_df, filler=0):
-    accuracy_scores = []
-    f1_scores = []
-    for idx, row in true_df.iterrows():
-        y_true = row.values[1:]
-        y_pred = pred_df.iloc[idx].values[1:]
-        y_pred[y_pred == -1] = filler
-        y_true = list(y_true)
-        y_pred = list(y_pred)
-        accuracy_scores.append(accuracy_score(y_true, y_pred))
-        f1_scores.append(f1_score(y_true, y_pred, average='macro'))
-    return accuracy_scores, f1_scores
-
-
 def get_feature_wise_scores(true_df, pred_df, filler=0):
     accuracy_scores = {}
     f1_scores = {}
+
     for feature in list(true_df.columns)[1:]:
         y_true = true_df[feature].tolist()
         y_pred = pred_df[feature].to_numpy()
         y_pred[y_pred == -1] = filler
+
         accuracy_scores[feature] = accuracy_score(y_true, y_pred)
         f1_scores[feature] = f1_score(y_true, y_pred, average='macro')
+
     return accuracy_scores, f1_scores
 
 
@@ -35,6 +24,7 @@ if __name__ == '__main__':
 
     # block below for feature-wise evaluation
     accuracy_scores, f1_scores = get_feature_wise_scores(ANNOTATIONS, CHAT_GPT)
+
     print('ACC', accuracy_scores, sep='\n')
     print('F1', f1_scores, sep='\n')
 
