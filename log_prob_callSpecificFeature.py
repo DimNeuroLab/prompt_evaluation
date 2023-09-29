@@ -643,7 +643,7 @@ def collect_data_values(features, annotations, num_shots):
 def save_to_file(data_values, column_names, model_name, deterministic_model_name, num_shots, creator_id,
                  features_filename, annotation_filename, suffix):
     timestr = time.strftime("%Y%m%d-%H%M%S")
-    filename = f"output/single_feature/{model_name} {deterministic_model_name}_evaluation_log_shots_{num_shots}promptgen_{creator_id}_features_file_{features_filename}_annotation_file_{annotation_filename}_{timestr}nobias_{suffix}.tsv"
+    filename = f"output/{model_name} {deterministic_model_name}_evaluation_log_shots_{num_shots}promptgen_{creator_id}_features_file_{features_filename}_annotation_file_{annotation_filename}_{timestr}nobias_{suffix}.tsv"
 
     print(data_values)
     print(column_names)
