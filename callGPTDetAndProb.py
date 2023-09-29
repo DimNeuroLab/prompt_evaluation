@@ -26,10 +26,10 @@ feature_list = FEATURES['feature_name'].tolist()
 openai.api_key = get_api_key()
 model_name_det =   "gpt-3.5-turbo"  #"gpt-4"
 model_name_prob =   "gpt-3.5-turbo-instruct" #'text-davinci-003'
-promptCreator_id=0
-promptCreator=promptCreator(FEATURES,ANNOTATIONS,promptCreator_id)
+promptCreator_ids=range(7)
 shots=2
-num_runs= 1
+num_runs= 7
+
 eval_det = True
 eval_prob = True
 YES_string_set={"Yes","YES","Y"," Yes"," YES"," Y","Yes ","YES ","Y "," Yes "," YES "," Y ",}
@@ -306,47 +306,50 @@ if __name__ == '__main__':
     df_column_names.extend(df_column_names_1)
     print(list(ANNOTATIONS.columns))
     print(df_column_names)
-    for _ in range(num_runs):
-        df_values_prob = []
-        df_values_det = []
+    for promptCreator_id in promptCreator_ids:
+        promptCreator=promptCreator(FEATURES,ANNOTATIONS,promptCreator_id)
 
-        prompts = ANNOTATIONS['prompt'].tolist()
+        for _ in range(num_runs):
+            df_values_prob = []
+            df_values_det = []
 
-        for counter,prompt in enumerate(tqdm(prompts)):
-            print('+'*60)
-            print('+' * 60)
-            print(counter,prompt)
-            print('+' * 60)
-            print('+' * 60)
+            prompts = ANNOTATIONS['prompt'].tolist()
 
-            # set debug=False to do actual API calls
-            # SATHYA MAKE THSI A loop over features
-            prompt_annotations_prob,det_annotations = evaluate_prompt_both(feature_list,prompt, debug=False, shots=shots,promptCreator=promptCreator)
-            #prompt_annotations["feature"]=the_feat
-            #SATHA check the best for this prompt_annotations["feature"]=the_feat .
-            df_values_prob.append(prompt_annotations_prob)
-            df_values_det.append(det_annotations)
+            for counter,prompt in enumerate(tqdm(prompts)):
+                print('+'*60)
+                print('+' * 60)
+                print(counter,prompt)
+                print('+' * 60)
+                print('+' * 60)
 
-            if counter>1:
-                break
-#sathya remember to save det_annotations
+                # set debug=False to do actual API calls
+                # SATHYA MAKE THSI A loop over features
+                prompt_annotations_prob,det_annotations = evaluate_prompt_both(feature_list,prompt, debug=False, shots=shots,promptCreator=promptCreator)
+                #prompt_annotations["feature"]=the_feat
+                #SATHA check the best for this prompt_annotations["feature"]=the_feat .
+                df_values_prob.append(prompt_annotations_prob)
+                df_values_det.append(det_annotations)
 
-
-
-        print("not good response")
-        print(not_good_response)
+                if counter>1:
+                    break
+    #sathya remember to save det_annotations
 
 
 
-        timestr = time.strftime("%Y%m%d-%H%M%S")
-        result_data = pd.DataFrame(df_values_prob)
-        result_data.to_csv('output/evaluation_prob_'+model_name_prob+'_'+model_name_det+'_shots_'+str(shots)+
-                           'promptgen_'+str(promptCreator_id)+"_features_file_"+features_filename+"_annotation_file_"
-                           +annotation_filename+'_'+timestr+'nobias.tsv', sep='\t', index=False)
+            print("not good response")
+            print(not_good_response)
 
-        result_data = pd.DataFrame(df_values_det)
-        result_data.to_csv('output/evaluation_det' + model_name_prob + ' ' + model_name_det + '_shots_' +
-                           str(shots) + 'promptgen_' + str(promptCreator_id) + "_features_file_" + features_filename +
-                           "_annotation_file_" + annotation_filename + '_' + timestr + 'nobias.tsv',
-                           sep='\t', index=False)
+
+
+            timestr = time.strftime("%Y%m%d-%H%M%S")
+            result_data = pd.DataFrame(df_values_prob)
+            result_data.to_csv('output/evaluation_prob_'+model_name_prob+'_'+model_name_det+'_shots_'+str(shots)+
+                               'promptgen_'+str(promptCreator_id)+"_features_file_"+features_filename+"_annotation_file_"
+                               +annotation_filename+'_'+timestr+'nobias.tsv', sep='\t', index=False)
+
+            result_data = pd.DataFrame(df_values_det)
+            result_data.to_csv('output/evaluation_det' + model_name_prob + ' ' + model_name_det + '_shots_' +
+                               str(shots) + 'promptgen_' + str(promptCreator_id) + "_features_file_" + features_filename +
+                               "_annotation_file_" + annotation_filename + '_' + timestr + 'nobias.tsv',
+                               sep='\t', index=False)
 
