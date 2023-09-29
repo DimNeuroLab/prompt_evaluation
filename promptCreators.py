@@ -13,7 +13,7 @@ class promptCreator:
         except:
             return ''
 
-    def get_negative_few_shot_example(self,feature_name, prompt, ANNOTATIONS, shots=1):
+    def get_negative_few_shot_example(self,feature_name, prompt,  shots=1):
         relevant = self.ANNOTATIONS[['prompt', feature_name]]
         try:
             rel_rows = relevant.loc[(relevant['prompt'] != prompt) & (relevant[feature_name] == 0)]
@@ -23,7 +23,7 @@ class promptCreator:
 
 
     def createPromptZero(self,eval_prompt, feature, shots):
-        feature_description = self.FEATURES.loc[self.FEATURES['self.feature_name'] == feature]['prompt_command'].iloc[0]
+        feature_description = self.FEATURES.loc[self.FEATURES['feature_name'] == feature]['prompt_command'].iloc[0]
         # include = self.FEATURES.loc[self.FEATURES['feature_name'] == feature]['include'].iloc[0]
         positive_few_shot1 = self.get_positive_few_shot_example(feature, eval_prompt,  shots=shots)
         # positive_few_shot = ['Prompt ' + str(idx + 1) + ': ' + val for idx, val in enumerate(positive_few_shot)]
@@ -489,7 +489,7 @@ class promptCreator:
         return eval_string, feature_description
 
 
-    def getPrompt(self):
+    def getPrompt(self,eval_prompt, feature, shots):
         if self.promptCreatorid == 0:
             return self. createPromptZero(eval_prompt, feature, shots)
         elif self.promptCreatorid == 1:

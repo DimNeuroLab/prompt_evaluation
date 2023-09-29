@@ -19,6 +19,7 @@ features_filename = 'features_new'
 annotation_filename = 'new_majority_annotations'
 FEATURES = pd.read_csv('data/'+features_filename+'.tsv', sep='\t')
 ANNOTATIONS = pd.read_csv('data/'+annotation_filename+'.tsv', sep='\t')
+ANNOTATIONS_TEST=ANNOTATIONS
 the_feat = "1 Goal (1,NaN)"
 #feature_list = FEATURES['feature_name'].tolist()
 feature_list = [the_feat] #FEATURES['feature_name'].tolist()
@@ -41,7 +42,7 @@ def completion_with_backoff(**kwargs):
 
 
 def get_true_label(feature_name, prompt, shots=1):
-    relevant = ANNOTATIONS[['prompt', feature_name]]
+    relevant = ANNOTATIONS_TEST[['prompt', feature_name]]
     try:
         rel_rows = relevant.loc[(relevant['prompt'] == prompt)]
         return rel_rows.sample(shots)[feature_name].values
@@ -89,7 +90,7 @@ class timeoutWindows:
         #signal.alarm(0)
 
 
-def evaluate_prompt_both( featurelist,eval_prompt, debug=True, shots=1, promptCreator):
+def evaluate_prompt_both( featurelist,eval_prompt, shots, promptCreator, debug=True):
 
     prompt_annotations = []
     prompt_annotations.append(eval_prompt)
@@ -117,173 +118,166 @@ def evaluate_prompt_both( featurelist,eval_prompt, debug=True, shots=1, promptCr
         return prompt_annotations_prob, prompt_annotations_det
 def evaluate_prompt_logits(feature,eval_string,  eval_prompt, debug=True):
     #these must be defined in the outer loop in orde to integrate all the feature for all the prompts
-    prompt_annotations = []
-    prompt_annotations.append(eval_prompt)
+    prompt_annotations = {}
+    prompt_annotations['eval_prompt']=eval_prompt
 
 
-    if True:
+    response = None
+    if debug:
+        print(50*'*', feature)
+        #print(eval_string)
+    #    response = {feature_description: -1}
+    else:
+        max_attempts = 5
+        for _ in range(max_attempts):
+            try:
+                time.sleep(0.5)
+                with timeoutWindows(seconds=100):
+                    '''
+                    response = openai.ChatCompletion.create(
+                        model=model_name,
+                        messages=conversation,
+                        temperature=0,
+                        logit_bias={
+                            15: 100.0,  # 0
+                            16: 100.0,  # 1
+                        }
+                    )
+                    '''
+                    '''
+                                                import tiktoke
+                                                tokenizer = tiktoken.encoding_for_model("text-davinci-003")
+                                                tokens = [" Yes", " No"]
+                                                ids = [tokenizer.encode(token) for token in tokens]
+                                                ids
+                                                Out[6]: [[3363], [1400]]
+                                                '''
+                    response = completion_with_backoff(
+                        model=model_name_prob, #'text-davinci-003',
+                        prompt=eval_string,
+                        max_tokens=1,
+                        temperature=0,
+                        logprobs=2,
+                        #messages=conversation,
+
+                        logit_bias={
+                            # 15: 100.0,  # 0
+                            # 16: 100.0,  # 1
+                            #15285: 100.0,   #YES
+
+                            #43335: 100.0,    # YES
+                            #15285: 100.0,    #NO
+                            #8005: 100.0     # NO
+                            #3363: 1, # " Yes"
+                            #1400: 1 # " No"
+
+                        },
+
+                    )
+                    '''
+                    2 runs no logit bias
+                    
+                    "Yes": -0.12884715,
+                    " Yes": -2.1852436
+                    "Yes": -0.42685947,
+                    " Yes": -1.0789018
+                    
+                    
+                    '''
+                    YES_string_set={"Yes","YES","Y"," Yes"," YES"," Y","Yes ","YES ","Y "," Yes "," YES "," Y ",}
+                    NO_string_set = {"No", "NO", "N", " No", " NO", " N", "No ", "NO ", "N ", " No ", " NO ",
+                                  " N", }
 
 
-
-        response = None
-        if debug:
-            print(50*'*', feature)
-            #print(eval_string)
-        #    response = {feature_description: -1}
-        else:
-            max_attempts = 5
-            for _ in range(max_attempts):
-                try:
-                    time.sleep(0.5)
-                    with timeoutWindows(seconds=100):
-                        '''
-                        response = openai.ChatCompletion.create(
-                            model=model_name,
-                            messages=conversation,
-                            temperature=0,
-                            logit_bias={
-                                15: 100.0,  # 0
-                                16: 100.0,  # 1
-                            }
-                        )
-                        '''
-                        '''
-                                                    import tiktoke
-                                                    tokenizer = tiktoken.encoding_for_model("text-davinci-003")
-                                                    tokens = [" Yes", " No"]
-                                                    ids = [tokenizer.encode(token) for token in tokens]
-                                                    ids
-                                                    Out[6]: [[3363], [1400]]
-                                                    '''
-                        response = completion_with_backoff(
-                            model=model_name_prob, #'text-davinci-003',
-                            prompt=eval_string,
-                            max_tokens=1,
-                            temperature=0,
-                            logprobs=2,
-                            #messages=conversation,
-
-                            logit_bias={
-                                # 15: 100.0,  # 0
-                                # 16: 100.0,  # 1
-                                #15285: 100.0,   #YES
-
-                                #43335: 100.0,    # YES
-                                #15285: 100.0,    #NO
-                                #8005: 100.0     # NO
-                                #3363: 1, # " Yes"
-                                #1400: 1 # " No"
-
-                            },
-
-                        )
-                        '''
-                        2 runs no logit bias
-                        
-                        "Yes": -0.12884715,
-                        " Yes": -2.1852436
-                        "Yes": -0.42685947,
-                        " Yes": -1.0789018
-                        
-                        
-                        '''
-                        YES_string_set={"Yes","YES","Y"," Yes"," YES"," Y","Yes ","YES ","Y "," Yes "," YES "," Y ",}
-                        NO_string_set = {"No", "NO", "N", " No", " NO", " N", "No ", "NO ", "N ", " No ", " NO ",
-                                      " N", }
+                    if (response['choices'][0]["logprobs"]["tokens"][0] in YES_string_set or response['choices'][0]["logprobs"]["tokens"][0] in NO_string_set):
+                        break
+                    else:
+                        print('+' * 80)
+                        print("bad response")
+                        print(response)
+                        print('+'*80)
+            except Exception as EXX:
+                print("exx")
+                print(EXX)
+                print('Timeout, retrying...')
+                pass
 
 
-                        if (response['choices'][0]["logprobs"]["tokens"][0] in YES_string_set or response['choices'][0]["logprobs"]["tokens"][0] in NO_string_set):
-                            break
-                        else:
-                            print('+' * 80)
-                            print("bad response")
-                            print(response)
-                            print('+'*80)
-                except Exception as EXX:
-                    print("exx")
-                    print(EXX)
-                    print('Timeout, retrying...')
-                    pass
-
-
-        if response is not None and (response['choices'][0]["logprobs"]["tokens"][0] in YES_string_set or response['choices'][0]["logprobs"]["tokens"][0] in NO_string_set):
-            gt = get_true_label(feature, prompt)
-            if response['choices'][0]["logprobs"]["tokens"][0] in YES_string_set:
-                print("\n\n*************** RESPONSE YES ****************\n\n")
-                if gt[0]!=1:
-                    print("MESSMESSMESSMESSMESSMESSMESSMESSMESSMESS")
-            elif response['choices'][0]["logprobs"]["tokens"][0] in NO_string_set:
-
-                print("\n\n*************** RESPONSE NO ****************\n\n" )
-                if gt[0]!=0:
-                    print("MESSMESSMESSMESSMESSMESSMESSMESSMESSMESS")
-            else:
-                print("\n\n*************** RESPONSE UFO ****************\n\n")
+    if response is not None and (response['choices'][0]["logprobs"]["tokens"][0] in YES_string_set or response['choices'][0]["logprobs"]["tokens"][0] in NO_string_set):
+        gt = get_true_label(feature, prompt)
+        if response['choices'][0]["logprobs"]["tokens"][0] in YES_string_set:
+            print("\n\n*************** RESPONSE YES ****************\n\n")
+            if gt[0]!=1:
                 print("MESSMESSMESSMESSMESSMESSMESSMESSMESSMESS")
-            print('*' * 15 + "  response prob  " + '*' * 15)
-            #print("**** response ****")
-            print(response)
+        elif response['choices'][0]["logprobs"]["tokens"][0] in NO_string_set:
 
-            value=response['choices'][0]["logprobs"]["token_logprobs"][0]
-            if response['choices'][0]["logprobs"]["tokens"][0] in YES_string_set:
-                response_value_Y =value
-                response_value_N = -100
-            elif response['choices'][0]["logprobs"]["tokens"][0] in NO_string_set:
-                response_value_Y = -100
-                response_value_N = value
-
-            # response = json.loads(response['choices'][0]['message']['content'])
-            #sys.exit(0)
+            print("\n\n*************** RESPONSE NO ****************\n\n" )
+            if gt[0]!=0:
+                print("MESSMESSMESSMESSMESSMESSMESSMESSMESSMESS")
         else:
-            response_value_Y = -100
+            print("\n\n*************** RESPONSE UFO ****************\n\n")
+            print("MESSMESSMESSMESSMESSMESSMESSMESSMESSMESS")
+        print('*' * 15 + "  response prob  " + '*' * 15)
+        #print("**** response ****")
+        print(response)
+
+        value=response['choices'][0]["logprobs"]["token_logprobs"][0]
+        if response['choices'][0]["logprobs"]["tokens"][0] in YES_string_set:
+            response_value_Y =value
             response_value_N = -100
-            global not_good_response
-            not_good_response += 1
-        print(response_value_Y, response_value_N)
-        prompt_annotations.append(response_value_Y)
-        prompt_annotations.append(response_value_N)
+        elif response['choices'][0]["logprobs"]["tokens"][0] in NO_string_set:
+            response_value_Y = -100
+            response_value_N = value
+
+        # response = json.loads(response['choices'][0]['message']['content'])
+        #sys.exit(0)
+    else:
+        response_value_Y = -100
+        response_value_N = -100
+        global not_good_response
+        not_good_response += 1
+    print(response_value_Y, response_value_N)
+    prompt_annotations[feature+'_Y']=response_value_Y
+    prompt_annotations[feature+'_N']=response_value_N
 
     return prompt_annotations
 
-
 def evaluate_prompt_det( feature,eval_string,feature_description, conversation,eval_prompt, debug=True):
     feature_list = FEATURES['feature_name'].tolist()
-    prompt_annotations = []
-    prompt_annotations.append(eval_prompt)
+    prompt_annotations={}
+    prompt_annotations["eval_prompt"]=eval_prompt
 
-    if True:
-
-        if debug:
-            print(50*'*', feature)
-            #print(eval_string)
-            response = {feature_description: -1}
-        else:
-            try:
-                response = openai.ChatCompletion.create(
-                    model=model_name_det,
-                    messages=conversation
-                )
-                print("DETERMINISTIC RESPONSE1")
-                print("DETERMINISTIC RESPONSE2")
-                print("DETERMINISTIC RESPONSE3")
-                print(response)
-                response_parsed=response['choices'][0]['message']['content']
-                #response_parsed = json.loads(response['choices'][0]['message']['content'])
-            except:
-                print("DETERMINISTIC RESPONSE14")
-                print("DETERMINISTIC RESPONSE25")
-                print("DETERMINISTIC RESPONSE36")
-                print(response)
-                #print(eval_string)
-                response_parsed = {feature_description: -1}
-
+    if debug:
+        print(50*'*', feature)
+        #print(eval_string)
+        response = {feature_description: -1}
+    else:
         try:
-            key = list(response.keys())[0]
-            response_value = int(response_parsed[key])
+            response = openai.ChatCompletion.create(
+                model=model_name_det,
+                messages=conversation
+            )
+            print("DETERMINISTIC RESPONSE1")
+            print("DETERMINISTIC RESPONSE2")
+            print("DETERMINISTIC RESPONSE3")
+            print(response)
+            response_parsed=response['choices'][0]['message']['content']
+            #response_parsed = json.loads(response['choices'][0]['message']['content'])
         except:
-            print(response_parsed)
-            response_value = -1
-        prompt_annotations.append(response_value)
+            print("DETERMINISTIC RESPONSE14")
+            print("DETERMINISTIC RESPONSE25")
+            print("DETERMINISTIC RESPONSE36")
+            print(response)
+            #print(eval_string)
+            response_parsed = {feature_description: -1}
+
+    try:
+        key = list(response.keys())[0]
+        response_value = int(response_parsed[key])
+    except:
+        print(response_parsed)
+        response_value = -1
+    prompt_annotations[feature]=response_value
 
     return prompt_annotations
 
@@ -309,6 +303,7 @@ if __name__ == '__main__':
             #prompt_annotations["feature"]=the_feat
             #SATHA check the best for this prompt_annotations["feature"]=the_feat .
             df_values.append(prompt_annotations)
+            break
 #sathya remember to save det_annotations
 
 
