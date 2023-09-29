@@ -1,0 +1,35 @@
+feature_name	prompt	Y	N	gt
+Topic - concise(1,NaN)	I want you to teach me the disadvantages of social media according to my personal information like age, level of education, & culture.	-0.23617452	-100	1
+Topic - broken down (1,NaN)	I want you to teach me the disadvantages of social media according to my personal information like age, level of education, & culture.	-0.4898561	-100	0
+1 Goal (1,NaN)	I want you to teach me the disadvantages of social media according to my personal information like age, level of education, & culture.	-100	-0.56062037	1
+2 Goals (1,NaN)	I want you to teach me the disadvantages of social media according to my personal information like age, level of education, & culture.	-0.25085142	-100	0
+>2 Goals (1,NaN)	I want you to teach me the disadvantages of social media according to my personal information like age, level of education, & culture.	-0.2950174	-100	0
+AI role play (1,NaN)	I want you to teach me the disadvantages of social media according to my personal information like age, level of education, & culture.	-0.16272874	-100	1
+Role form/context(1,NaN)	I want you to teach me the disadvantages of social media according to my personal information like age, level of education, & culture.	-0.36386758	-100	1
+Meta Process-related (1,NaN)	I want you to teach me the disadvantages of social media according to my personal information like age, level of education, & culture.	-0.37614316	-100	0
+Simple sentence structure (1,NaN)	I want you to teach me the disadvantages of social media according to my personal information like age, level of education, & culture.	-100	-0.7936477	0
+Complex sentence structure (1,NaN)	I want you to teach me the disadvantages of social media according to my personal information like age, level of education, & culture.	-0.3776479	-100	1
+ActAsPersona- Persona Pattern (1,Nan)	I want you to teach me the disadvantages of social media according to my personal information like age, level of education, & culture.	-100	-0.72737515	0
+ProvideOutPuts- Persona Pattern (1,Nan)	I want you to teach me the disadvantages of social media according to my personal information like age, level of education, & culture.	-0.2445082	-100	1
+PatternOrder- Persona Pattern (1,Nan)	I want you to teach me the disadvantages of social media according to my personal information like age, level of education, & culture.	-0.25856915	-100	0
+StrictSeparationRoleVsOutput- Persona Pattern (1,Nan)	I want you to teach me the disadvantages of social media according to my personal information like age, level of education, & culture.	-0.5067583	-100	0
+Feature 1: AskMeQuestions-FlippedPattern	I want you to teach me the disadvantages of social media according to my personal information like age, level of education, & culture.	-0.5663121	-100	0
+Feature 2: ConditionStop-FlippedPattern	I want you to teach me the disadvantages of social media according to my personal information like age, level of education, & culture.	-0.33335543	-100	0
+Feature 3: Form-FlippedPattern:	I want you to teach me the disadvantages of social media according to my personal information like age, level of education, & culture.	-100	-0.5162921	0
+Topic - concise(1,NaN)	I want you to teach me the disadvantages of social media according to my personal information like age, level of education, & culture.	-0.19751678	-100	1
+Topic - broken down (1,NaN)	I want you to teach me the disadvantages of social media according to my personal information like age, level of education, & culture.	-0.49417433	-100	0
+1 Goal (1,NaN)	I want you to teach me the disadvantages of social media according to my personal information like age, level of education, & culture.	-0.37220958	-100	1
+2 Goals (1,NaN)	I want you to teach me the disadvantages of social media according to my personal information like age, level of education, & culture.	-100	-0.58020896	0
+>2 Goals (1,NaN)	I want you to teach me the disadvantages of social media according to my personal information like age, level of education, & culture.	-0.39096242	-100	0
+AI role play (1,NaN)	I want you to teach me the disadvantages of social media according to my personal information like age, level of education, & culture.	-0.24768543	-100	1
+Role form/context(1,NaN)	I want you to teach me the disadvantages of social media according to my personal information like age, level of education, & culture.	-0.22457387	-100	1
+Meta Process-related (1,NaN)	I want you to teach me the disadvantages of social media according to my personal information like age, level of education, & culture.	-0.5538833	-100	0
+Simple sentence structure (1,NaN)	I want you to teach me the disadvantages of social media according to my personal information like age, level of education, & culture.	-0.18809813	-100	0
+Complex sentence structure (1,NaN)	I want you to teach me the disadvantages of social media according to my personal information like age, level of education, & culture.	-0.20240389	-100	1
+ActAsPersona- Persona Pattern (1,Nan)	I want you to teach me the disadvantages of social media according to my personal information like age, level of education, & culture.	-0.14352915	-100	0
+ProvideOutPuts- Persona Pattern (1,Nan)	I want you to teach me the disadvantages of social media according to my personal information like age, level of education, & culture.	-0.63084036	-100	1
+PatternOrder- Persona Pattern (1,Nan)	I want you to teach me the disadvantages of social media according to my personal information like age, level of education, & culture.	-0.2663018	-100	0
+StrictSeparationRoleVsOutput- Persona Pattern (1,Nan)	I want you to teach me the disadvantages of social media according to my personal information like age, level of education, & culture.	-0.23438787	-100	0
+Feature 1: AskMeQuestions-FlippedPattern	I want you to teach me the disadvantages of social media according to my personal information like age, level of education, & culture.	-0.43015078	-100	0
+Feature 2: ConditionStop-FlippedPattern	I want you to teach me the disadvantages of social media according to my personal information like age, level of education, & culture.	-0.5040869	-100	0
+Feature 3: Form-FlippedPattern:	I want you to teach me the disadvantages of social media according to my personal information like age, level of education, & culture.	-0.46910402	-100	0

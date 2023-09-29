@@ -34,7 +34,7 @@ PROBABILISTIC_MODEL_NAME = "gpt-3.5-turbo-instruct"
 PROMPT_CREATOR_ID = 0
 
 NUMBER_OF_SHOTS = 2
-NUMBER_OF_RUNS = 1
+NUMBER_OF_RUNS = 5
 
 IS_DETERMINISTIC_EVALUATION_ENABLED = True
 IS_PROBABILISTIC_EVALUATION_ENABLED = True
@@ -44,7 +44,7 @@ openai.api_key = OPENAI_API_KEY
 YES_STRINGS = {"Yes", "YES", "Y", " Yes", " YES", " Y", "Yes ", "YES ", "Y ", " Yes ", " YES ", " Y "}
 NO_STRINGS = {"No", "NO", "N", " No", " NO", " N", "No ", "NO ", "N ", " No ", " NO ", " N"}
 
-
+Verbose = True
 @retry(wait=wait_random_exponential(min=1, max=240), stop=stop_after_attempt(4))
 def completion_with_backoff(**kwargs):
     return openai.Completion.create(**kwargs)
@@ -498,6 +498,11 @@ def evaluate_prompt_both(feature_list, eval_prompt, shots=1, prompt_creator=2):
         prompt_annotations_prob = None
         prompt_annotations_det = None
 
+        if Verbose:
+            print('*'*60)
+            print("eval_string_prob")
+            print(eval_string_prob)
+
         if IS_PROBABILISTIC_EVALUATION_ENABLED:
             prompt_annotations_prob = evaluate_prompt_logits(
                 feature=feature,
@@ -552,10 +557,26 @@ def evaluate_prompt_logits(feature, eval_string, feature_description, eval_promp
         response_value_N = value if response['choices'][0]["logprobs"]["tokens"][0] in NO_STRINGS else -100
 
         print(f"Y: {response_value_Y}; F: {response_value_N}; GT: {gt}")
+        if Verbose:
+            print('*' * 60)
+            print("response_prob")
+            print(response_value_Y,response_value_N)
+            print("Gt")
+            print(gt)
+            print("response_prob string")
+            print(response)
+
 
     else:
         response_value_Y = response_value_N = -100
         not_good_response += 1
+        if Verbose:
+            print('*' * 60)
+            print("response_prob")
+            print("bad response")
+            print(response)
+            print("Gt")
+            print(gt)
 
     # print(response_value_Y, response_value_N)
     prompt_annotations.extend([response_value_Y, response_value_N, gt[0]])
@@ -595,6 +616,14 @@ def evaluate_prompt_det(feature, feature_desc, conversation, evaluation_prompt):
 
         response_value = response_parsed.get(response_key, -1) if isinstance(response_parsed, dict) else -1
         prompt_annotations.append(response_value)
+        if Verbose:
+            print('*' * 60)
+            print("response_det")
+            print(response_value)
+            print("Gt")
+            print(gt)
+            print("response_prob string")
+            print(response)
     else:
         prompt_annotations.append(-1)
 
@@ -623,19 +652,19 @@ def build_column_names(annotations):
 def collect_data_values(features, annotations, num_shots):
     df_values = []
     det_annotations_data = []
-    for _ in range(num_shots):
-        prompts = annotations["prompt"].tolist()
+    #for _ in range(num_shots):
+    prompts = annotations["prompt"].tolist()
 
-        for prompt in tqdm(prompts):
-            for feature in features["feature_name"]:
-                prompt_annotations, det_annotations = evaluate_prompt_both([feature], prompt, shots=num_shots)
+    for prompt in tqdm(prompts):
+        for feature_name in features["feature_name"]:
+            prompt_annotations, det_annotations = evaluate_prompt_both([feature_name], prompt, shots=num_shots)
 
-                prompt_annotations.insert(0, feature)
-                det_annotations.insert(0, feature)
+            prompt_annotations.insert(0, feature_name)
+            det_annotations.insert(0, feature_name)
 
-                df_values.append(prompt_annotations)
-                det_annotations_data.append(det_annotations)
-                break
+            df_values.append(prompt_annotations)
+            det_annotations_data.append(det_annotations)
+        break
 
     return df_values, det_annotations_data
 
