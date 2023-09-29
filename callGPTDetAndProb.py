@@ -21,8 +21,8 @@ FEATURES = pd.read_csv('data/'+features_filename+'.tsv', sep='\t')
 ANNOTATIONS = pd.read_csv('data/'+annotation_filename+'.tsv', sep='\t')
 ANNOTATIONS_TEST=ANNOTATIONS
 the_feat = "1 Goal (1,NaN)"
-#feature_list = FEATURES['feature_name'].tolist()
-feature_list = [the_feat] #FEATURES['feature_name'].tolist()
+feature_list = FEATURES['feature_name'].tolist()
+#feature_list = [the_feat] #FEATURES['feature_name'].tolist()
 openai.api_key = get_api_key()
 model_name_det =   "gpt-3.5-turbo"  #"gpt-4"
 model_name_prob =   "gpt-3.5-turbo-instruct" #'text-davinci-003'
@@ -32,6 +32,8 @@ shots=2
 num_runs= 1
 eval_det = True
 eval_prob = True
+YES_string_set={"Yes","YES","Y"," Yes"," YES"," Y","Yes ","YES ","Y "," Yes "," YES "," Y ",}
+NO_string_set = {"No", "NO", "N", " No", " NO", " N", "No ", "NO ", "N ", " No ", " NO "," N", }
 
 
 
@@ -185,9 +187,7 @@ def evaluate_prompt_logits(feature,eval_string,  eval_prompt, debug=True):
                     
                     
                     '''
-                    YES_string_set={"Yes","YES","Y"," Yes"," YES"," Y","Yes ","YES ","Y "," Yes "," YES "," Y ",}
-                    NO_string_set = {"No", "NO", "N", " No", " NO", " N", "No ", "NO ", "N ", " No ", " NO ",
-                                  " N", }
+
 
 
                     if (response['choices'][0]["logprobs"]["tokens"][0] in YES_string_set or response['choices'][0]["logprobs"]["tokens"][0] in NO_string_set):
@@ -207,18 +207,18 @@ def evaluate_prompt_logits(feature,eval_string,  eval_prompt, debug=True):
     if response is not None and (response['choices'][0]["logprobs"]["tokens"][0] in YES_string_set or response['choices'][0]["logprobs"]["tokens"][0] in NO_string_set):
         gt = get_true_label(feature, prompt)
         if response['choices'][0]["logprobs"]["tokens"][0] in YES_string_set:
-            print("\n\n*************** RESPONSE YES ****************\n\n")
+            print("\n\n*************** RESPONSE PROB YES ****************\n\n")
             if gt[0]!=1:
                 print("MESSMESSMESSMESSMESSMESSMESSMESSMESSMESS")
         elif response['choices'][0]["logprobs"]["tokens"][0] in NO_string_set:
 
-            print("\n\n*************** RESPONSE NO ****************\n\n" )
+            print("\n\n*************** RESPONSE PROB NO ****************\n\n" )
             if gt[0]!=0:
                 print("MESSMESSMESSMESSMESSMESSMESSMESSMESSMESS")
         else:
-            print("\n\n*************** RESPONSE UFO ****************\n\n")
+            print("\n\n*************** RESPONSE PROB UFO ****************\n\n")
             print("MESSMESSMESSMESSMESSMESSMESSMESSMESSMESS")
-        print('*' * 15 + "  response prob  " + '*' * 15)
+        print('*' * 15 + " full  response prob  " + '*' * 15)
         #print("**** response ****")
         print(response)
 
@@ -261,8 +261,14 @@ def evaluate_prompt_det( feature,eval_string,feature_description, conversation,e
             print("DETERMINISTIC RESPONSE1")
             print("DETERMINISTIC RESPONSE2")
             print("DETERMINISTIC RESPONSE3")
-            print(response)
             response_parsed=response['choices'][0]['message']['content']
+            print("response det parsed")
+            print(response_parsed)
+
+            print("full response det parsed")
+
+            print(response)
+
             #response_parsed = json.loads(response['choices'][0]['message']['content'])
         except:
             print("DETERMINISTIC RESPONSE14")
@@ -273,8 +279,15 @@ def evaluate_prompt_det( feature,eval_string,feature_description, conversation,e
             response_parsed = {feature_description: -1}
 
     try:
-        key = list(response.keys())[0]
-        response_value = int(response_parsed[key])
+#        key = list(response.keys())[0]
+        if response_parsed in YES_string_set:
+            response_value =1
+        elif response_parsed in NO_string_set:
+            response_value=-1
+        else:
+            print("parse error")
+            response_value=0
+
     except:
         print(response_parsed)
         response_value = -1
@@ -294,17 +307,28 @@ if __name__ == '__main__':
     print(list(ANNOTATIONS.columns))
     print(df_column_names)
     for _ in range(num_runs):
-        df_values = []
+        df_values_prob = []
+        df_values_det = []
 
         prompts = ANNOTATIONS['prompt'].tolist()
-        for prompt in tqdm(prompts):
+
+        for counter,prompt in enumerate(tqdm(prompts)):
+            print('+'*60)
+            print('+' * 60)
+            print(counter,prompt)
+            print('+' * 60)
+            print('+' * 60)
+
             # set debug=False to do actual API calls
             # SATHYA MAKE THSI A loop over features
-            prompt_annotations,det_annotations = evaluate_prompt_both(feature_list,prompt, debug=False, shots=shots,promptCreator=promptCreator)
+            prompt_annotations_prob,det_annotations = evaluate_prompt_both(feature_list,prompt, debug=False, shots=shots,promptCreator=promptCreator)
             #prompt_annotations["feature"]=the_feat
             #SATHA check the best for this prompt_annotations["feature"]=the_feat .
-            df_values.append(prompt_annotations)
-            break
+            df_values_prob.append(prompt_annotations_prob)
+            df_values_det.append(det_annotations)
+
+            if counter>1:
+                break
 #sathya remember to save det_annotations
 
 
@@ -315,6 +339,14 @@ if __name__ == '__main__':
 
 
         timestr = time.strftime("%Y%m%d-%H%M%S")
-        result_data = pd.DataFrame(np.array(df_values))
-        result_data.to_csv('output/single_feature/'+model_name_prob+' '+model_name_det+'_evaluation_log_shots_'+str(shots)+'promptgen_'+str(promptCreator_id)+"_features_file_"+features_filename+"_annotation_file_"+annotation_filename+'_'+timestr+'nobias.tsv', sep='\t', index=False)
+        result_data = pd.DataFrame(df_values_prob)
+        result_data.to_csv('output/evaluation_prob_'+model_name_prob+'_'+model_name_det+'_shots_'+str(shots)+
+                           'promptgen_'+str(promptCreator_id)+"_features_file_"+features_filename+"_annotation_file_"
+                           +annotation_filename+'_'+timestr+'nobias.tsv', sep='\t', index=False)
+
+        result_data = pd.DataFrame(df_values_det)
+        result_data.to_csv('output/evaluation_det' + model_name_prob + ' ' + model_name_det + '_shots_' +
+                           str(shots) + 'promptgen_' + str(promptCreator_id) + "_features_file_" + features_filename +
+                           "_annotation_file_" + annotation_filename + '_' + timestr + 'nobias.tsv',
+                           sep='\t', index=False)
 
