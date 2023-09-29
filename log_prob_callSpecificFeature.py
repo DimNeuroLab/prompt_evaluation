@@ -13,7 +13,7 @@ from tenacity import (
     stop_after_attempt,
     wait_random_exponential,
 )  # for exponential backoff
-
+from promptCreators import promptCreator
 
 features_filename = 'features_new'
 annotation_filename = 'new_majority_annotations'
@@ -25,7 +25,7 @@ feature_list = [the_feat] #FEATURES['feature_name'].tolist()
 openai.api_key = get_api_key()
 model_name_det =   "gpt-3.5-turbo"  #"gpt-4"
 model_name_prob =   "gpt-3.5-turbo-instruct" #'text-davinci-003'
-promptCreator=0
+promptCreator=promptCreator(FEATURES,ANNOTATIONS,0)
 shots=2
 num_runs= 1
 eval_det = True
@@ -33,17 +33,12 @@ eval_prob = True
 
 
 
+
 @retry(wait=wait_random_exponential(min=1, max=240), stop=stop_after_attempt(4))
 def completion_with_backoff(**kwargs):
     return openai.Completion.create(**kwargs)
 
-def get_positive_few_shot_example(feature_name, prompt, shots=1):
-    relevant = ANNOTATIONS[['prompt', feature_name]]
-    try:
-        rel_rows = relevant.loc[(relevant['prompt'] != prompt) & (relevant[feature_name] == 1)]
-        return rel_rows.sample(shots)['prompt'].values
-    except:
-        return ''
+
 
 def get_true_label(feature_name, prompt, shots=1):
     relevant = ANNOTATIONS[['prompt', feature_name]]
@@ -54,13 +49,7 @@ def get_true_label(feature_name, prompt, shots=1):
         return ''
 
 
-def get_negative_few_shot_example(feature_name, prompt, shots=1):
-    relevant = ANNOTATIONS[['prompt', feature_name]]
-    try:
-        rel_rows = relevant.loc[(relevant['prompt'] != prompt) & (relevant[feature_name] == 0)]
-        return rel_rows.sample(shots)['prompt'].values
-    except:
-        return ''
+
 
 
 class timeoutLinux:
@@ -99,487 +88,15 @@ class timeoutWindows:
         self.timer.cancel()
         #signal.alarm(0)
 
-def createPromptZero(eval_prompt, feature,shots):
-    feature_description = FEATURES.loc[FEATURES['feature_name'] == feature]['prompt_command'].iloc[0]
-    # include = FEATURES.loc[FEATURES['feature_name'] == feature]['include'].iloc[0]
-    positive_few_shot1 = get_positive_few_shot_example(feature, eval_prompt, shots=shots)
-    # positive_few_shot = ['Prompt ' + str(idx + 1) + ': ' + val for idx, val in enumerate(positive_few_shot)]
-    positive_few_shot1 = '\n'.join(positive_few_shot1)
-    negative_few_shot1 = get_negative_few_shot_example(feature, eval_prompt, shots=shots)
-    # negative_few_shot = ['Prompt ' + str(idx + 1) + ': ' + val for idx, val in enumerate(negative_few_shot)]
-    negative_few_shot1 = '\n'.join(negative_few_shot1)
 
-
-    eval_string = f"""Me: Check if this feature:
-            {feature_description}\n
-            is present in the following prompts, answer with YES or NO\n
-            {positive_few_shot1}\n
-            You: Yes\n
-            Me: and in the following prompt?
-            {negative_few_shot1}\n
-            You: No\n
-
-            Me: and in the following prompt?
-            {eval_prompt}\n
-            You: \n
-            """
-    return eval_string,feature_description
-def createPrompt(eval_prompt, feature,shots):
-    feature_description = FEATURES.loc[FEATURES['feature_name'] == feature]['prompt_command'].iloc[0]
-    # include = FEATURES.loc[FEATURES['feature_name'] == feature]['include'].iloc[0]
-    positive_few_shot1 = get_positive_few_shot_example(feature, eval_prompt, shots=shots)
-    # positive_few_shot = ['Prompt ' + str(idx + 1) + ': ' + val for idx, val in enumerate(positive_few_shot)]
-    positive_few_shot1 = '\n'.join(positive_few_shot1)
-    negative_few_shot1 = get_negative_few_shot_example(feature, eval_prompt, shots=shots)
-    # negative_few_shot = ['Prompt ' + str(idx + 1) + ': ' + val for idx, val in enumerate(negative_few_shot)]
-    negative_few_shot1 = '\n'.join(negative_few_shot1)
-
-    positive_few_shot2 = get_positive_few_shot_example(feature, eval_prompt, shots=shots)
-    # positive_few_shot = ['Prompt ' + str(idx + 1) + ': ' + val for idx, val in enumerate(positive_few_shot)]
-    positive_few_shot2 = '\n'.join(positive_few_shot2)
-    negative_few_shot2 = get_negative_few_shot_example(feature, eval_prompt, shots=shots)
-    # negative_few_shot = ['Prompt ' + str(idx + 1) + ': ' + val for idx, val in enumerate(negative_few_shot)]
-    negative_few_shot2 = '\n'.join(negative_few_shot2)
-
-    eval_string = f"""Me: Check if this feature:
-            {feature_description}\n
-            is present in the following prompts, answer with YES or NO\n
-            {positive_few_shot1}\n
-            You: Yes\n
-            Me: and in the following prompt?
-            {negative_few_shot1}\n
-            You: No\n
-
-            Me: and in the following prompt?
-            {negative_few_shot2}\n
-            You: No\n
-            Me: and in the following prompt?
-            {positive_few_shot2}\n
-            You: Yes\n
-
-            Me: and in the following prompt?
-            {eval_prompt}\n
-            You: \n
-            """
-    return eval_string,feature_description
-
-def createPromptInverted(eval_prompt, feature,shots):
-    '''
-
-    :param eval_prompt:
-    :param feature:
-    :param shots:
-    :return:
-
-    output example (sequence of labels used in the few shot learning: N Y Y N)
-            Me: Answer with Yes or No if this feature:
-            additional contextual information about the role of the language model, the user, or the environment
-
-            is present in the following prompt:
-
-            Explain the negative sides of social media use without using bulletins and ask one question at a time. And make it interactive by asking questions like a teacher
-
-            You: No
-
-            Me: and in the following prompt?
-
-            I'm a student!  Could you be my super-cool "teacher" for a bit and chat about two tricky things with social media "Echo Chambers" and "Social Media Self Protection Skills"?  Here's how we can make it awesome:   - Let's make this a real conversation. You ask one question at a time, always hold up for my reply, I answer, and go to the next interactive step.  - Keep the conversation fun! A joke or two wouldn't hurt.  - First, what is my name, how old am I and what's my school level? That way, you can keep things more appropriate for me.  - Lastly, what's my cultural background? It'll help make our chat about social media even more understandable by mentioning related examples specific to my culture for each topic.
-
-            You: Yes
-
-
-            Me: and in the following prompt?
-
-            Hello! Please try to act like my teacher teaching me disadvantages of social media by considering my age, level of education, and culture but in a more friendly and supportive way. Meanwhile, please do this in an interactive way by asking one question at a time.
-
-            You: Yes
-
-            Me: and in the following prompt?
-
-            I want you to teach me the disadvantages of social media according to my personal information like age, level of education, & culture.
-
-            You: No
-
-
-            Me: and in the following prompt?
-
-            Hello! I want to learn more about the negative aspects of social media. Can we have an educative conversation about it?
-
-            You:
-    '''
-    feature_description = FEATURES.loc[FEATURES['feature_name'] == feature]['prompt_command'].iloc[0]
-    # include = FEATURES.loc[FEATURES['feature_name'] == feature]['include'].iloc[0]
-    positive_few_shot1 = get_positive_few_shot_example(feature, eval_prompt, shots=shots)
-    # positive_few_shot = ['Prompt ' + str(idx + 1) + ': ' + val for idx, val in enumerate(positive_few_shot)]
-    positive_few_shot1 = '\n'.join(positive_few_shot1)
-    negative_few_shot1 = get_negative_few_shot_example(feature, eval_prompt, shots=shots)
-    # negative_few_shot = ['Prompt ' + str(idx + 1) + ': ' + val for idx, val in enumerate(negative_few_shot)]
-    negative_few_shot1 = '\n'.join(negative_few_shot1)
-
-    positive_few_shot2 = get_positive_few_shot_example(feature, eval_prompt, shots=shots)
-    # positive_few_shot = ['Prompt ' + str(idx + 1) + ': ' + val for idx, val in enumerate(positive_few_shot)]
-    positive_few_shot2 = '\n'.join(positive_few_shot2)
-    negative_few_shot2 = get_negative_few_shot_example(feature, eval_prompt, shots=shots)
-    # negative_few_shot = ['Prompt ' + str(idx + 1) + ': ' + val for idx, val in enumerate(negative_few_shot)]
-    negative_few_shot2 = '\n'.join(negative_few_shot2)
-
-    eval_string = f"""Me: Answer with Yes or No if this feature:
-            {feature_description}\n
-            is present in the following prompt:\n
-            {negative_few_shot2}\n
-            You: No\n
-            Me: and in the following prompt?\n
-            {positive_few_shot2}\n
-            You: Yes\n
-
-            Me: and in the following prompt?\n
-            {positive_few_shot1}\n
-            You: Yes\n
-            Me: and in the following prompt?\n
-            {negative_few_shot1}\n
-            You: No\n
-            
-            Me: and in the following prompt?\n
-            {eval_prompt}\n
-            You: \n
-            """
-    return eval_string,feature_description
-
-def createPromptRandom2(eval_prompt, feature, shots):
-    '''
-
-    :param eval_prompt:
-    :param feature:
-    :param shots:
-    :return:
-
-    output example (sequence of labels used in the few shot learning: N Y Y N)
-            Me: Answer with Yes or No if this feature:
-            additional contextual information about the role of the language model, the user, or the environment
-
-            is present in the following prompt:
-
-            Explain the negative sides of social media use without using bulletins and ask one question at a time. And make it interactive by asking questions like a teacher
-
-            You: No
-
-            Me: and in the following prompt?
-
-            I'm a student!  Could you be my super-cool "teacher" for a bit and chat about two tricky things with social media "Echo Chambers" and "Social Media Self Protection Skills"?  Here's how we can make it awesome:   - Let's make this a real conversation. You ask one question at a time, always hold up for my reply, I answer, and go to the next interactive step.  - Keep the conversation fun! A joke or two wouldn't hurt.  - First, what is my name, how old am I and what's my school level? That way, you can keep things more appropriate for me.  - Lastly, what's my cultural background? It'll help make our chat about social media even more understandable by mentioning related examples specific to my culture for each topic.
-
-            You: Yes
-
-
-            Me: and in the following prompt?
-
-            Hello! Please try to act like my teacher teaching me disadvantages of social media by considering my age, level of education, and culture but in a more friendly and supportive way. Meanwhile, please do this in an interactive way by asking one question at a time.
-
-            You: Yes
-
-            Me: and in the following prompt?
-
-            I want you to teach me the disadvantages of social media according to my personal information like age, level of education, & culture.
-
-            You: No
-
-
-            Me: and in the following prompt?
-
-            Hello! I want to learn more about the negative aspects of social media. Can we have an educative conversation about it?
-
-            You:
-    '''
-    feature_description = FEATURES.loc[FEATURES['feature_name'] == feature]['prompt_command'].iloc[0]
-    # include = FEATURES.loc[FEATURES['feature_name'] == feature]['include'].iloc[0]
-    positive_few_shot = []
-    negative_few_shot = []
-    eval_string = f"""
-            Me: Answer with Yes or No if this feature:
-                {feature_description}\n
-            applies ...\n
-            to the following prompt:\n"""
-    for i in range(shots):
-        positive_few_shot.append(get_positive_few_shot_example(feature, eval_prompt, shots=1))
-        # positive_few_shot = ['Prompt ' + str(idx + 1) + ': ' + val for idx, val in enumerate(positive_few_shot)]
-        positive_few_shot[i] = '\n'.join(positive_few_shot[i])
-        negative_few_shot.append(get_negative_few_shot_example(feature, eval_prompt, shots=1))
-    # negative_few_shot = ['Prompt ' + str(idx + 1) + ': ' + val for idx, val in enumerate(negative_few_shot)]
-        negative_few_shot[i] = '\n'.join(negative_few_shot[i])
-        if np.random.choice(2, 1)==1:
-            newsubstring=f"""
-            {negative_few_shot[i]}\n
-            You: No\n
-            Me: to the following prompt:\n
-            {positive_few_shot[i]}\n
-            You: Yes\n
-            Me: to the following prompt:\n"""
-            eval_string+=newsubstring
-        else:
-            eval_string+=f"""
-            {positive_few_shot[i]}\n
-            You: Yes\n
-            Me: to the following prompt:\n
-            {negative_few_shot[i]}\n
-            You: No\n
-            Me: to the following prompt:\n"""
-
-    eval_string += f"""
-            {eval_prompt}\n
-            You: \n
-            """
-
-    return eval_string, feature_description
-
-def createPromptRandom3(eval_prompt, feature, shots):
-    '''
-
-    :param eval_prompt:
-    :param feature:
-    :param shots:
-    :return:
-
-    output example (sequence of labels used in the few shot learning: N Y Y N)
-            Me: Answer with Yes or No if this feature:
-            additional contextual information about the role of the language model, the user, or the environment
-
-            is present in the following prompt:
-
-            Explain the negative sides of social media use without using bulletins and ask one question at a time. And make it interactive by asking questions like a teacher
-
-            You: No
-
-            Me: and in the following prompt?
-
-            I'm a student!  Could you be my super-cool "teacher" for a bit and chat about two tricky things with social media "Echo Chambers" and "Social Media Self Protection Skills"?  Here's how we can make it awesome:   - Let's make this a real conversation. You ask one question at a time, always hold up for my reply, I answer, and go to the next interactive step.  - Keep the conversation fun! A joke or two wouldn't hurt.  - First, what is my name, how old am I and what's my school level? That way, you can keep things more appropriate for me.  - Lastly, what's my cultural background? It'll help make our chat about social media even more understandable by mentioning related examples specific to my culture for each topic.
-
-            You: Yes
-
-
-            Me: and in the following prompt?
-
-            Hello! Please try to act like my teacher teaching me disadvantages of social media by considering my age, level of education, and culture but in a more friendly and supportive way. Meanwhile, please do this in an interactive way by asking one question at a time.
-
-            You: Yes
-
-            Me: and in the following prompt?
-
-            I want you to teach me the disadvantages of social media according to my personal information like age, level of education, & culture.
-
-            You: No
-
-
-            Me: and in the following prompt?
-
-            Hello! I want to learn more about the negative aspects of social media. Can we have an educative conversation about it?
-
-            You:
-    '''
-    feature_description = FEATURES.loc[FEATURES['feature_name'] == feature]['prompt_command'].iloc[0]
-    # include = FEATURES.loc[FEATURES['feature_name'] == feature]['include'].iloc[0]
-    positive_few_shot = []
-    negative_few_shot = []
-    eval_string = f"""
-            Me: Answer with Yes or No if this description:
-                {feature_description}\n
-            applies ...\n
-            to the following prompt:\n"""
-    for i in range(shots):
-        positive_few_shot.append(get_positive_few_shot_example(feature, eval_prompt, shots=1))
-        # positive_few_shot = ['Prompt ' + str(idx + 1) + ': ' + val for idx, val in enumerate(positive_few_shot)]
-        positive_few_shot[i] = '\n'.join(positive_few_shot[i])
-        negative_few_shot.append(get_negative_few_shot_example(feature, eval_prompt, shots=1))
-    # negative_few_shot = ['Prompt ' + str(idx + 1) + ': ' + val for idx, val in enumerate(negative_few_shot)]
-        negative_few_shot[i] = '\n'.join(negative_few_shot[i])
-        if np.random.choice(2, 1)==1:
-            newsubstring=f"""
-            {negative_few_shot[i]}\n
-            You: No\n
-            Me: to the following prompt:\n
-            {positive_few_shot[i]}\n
-            You: Yes\n
-            Me: to the following prompt:\n"""
-            eval_string+=newsubstring
-        else:
-            eval_string+=f"""
-            {positive_few_shot[i]}\n
-            You: Yes\n
-            Me: to the following prompt:\n
-            {negative_few_shot[i]}\n
-            You: No\n
-            Me: to the following prompt:\n"""
-
-    eval_string += f"""
-            {eval_prompt}\n
-            You: \n
-            """
-
-    return eval_string, feature_description
-
-
-def createPromptRandom(eval_prompt, feature, shots):
-    '''
-
-    :param eval_prompt:
-    :param feature:
-    :param shots:
-    :return:
-
-    output example (sequence of labels used in the few shot learning: N Y Y N)
-            Me: Answer with Yes or No if this feature:
-            additional contextual information about the role of the language model, the user, or the environment
-
-            is present in the following prompt:
-
-            Explain the negative sides of social media use without using bulletins and ask one question at a time. And make it interactive by asking questions like a teacher
-
-            You: No
-
-            Me: and in the following prompt?
-
-            I'm a student!  Could you be my super-cool "teacher" for a bit and chat about two tricky things with social media "Echo Chambers" and "Social Media Self Protection Skills"?  Here's how we can make it awesome:   - Let's make this a real conversation. You ask one question at a time, always hold up for my reply, I answer, and go to the next interactive step.  - Keep the conversation fun! A joke or two wouldn't hurt.  - First, what is my name, how old am I and what's my school level? That way, you can keep things more appropriate for me.  - Lastly, what's my cultural background? It'll help make our chat about social media even more understandable by mentioning related examples specific to my culture for each topic.
-
-            You: Yes
-
-
-            Me: and in the following prompt?
-
-            Hello! Please try to act like my teacher teaching me disadvantages of social media by considering my age, level of education, and culture but in a more friendly and supportive way. Meanwhile, please do this in an interactive way by asking one question at a time.
-
-            You: Yes
-
-            Me: and in the following prompt?
-
-            I want you to teach me the disadvantages of social media according to my personal information like age, level of education, & culture.
-
-            You: No
-
-
-            Me: and in the following prompt?
-
-            Hello! I want to learn more about the negative aspects of social media. Can we have an educative conversation about it?
-
-            You:
-    '''
-    feature_description = FEATURES.loc[FEATURES['feature_name'] == feature]['prompt_command'].iloc[0]
-    # include = FEATURES.loc[FEATURES['feature_name'] == feature]['include'].iloc[0]
-    positive_few_shot = []
-    negative_few_shot = []
-    eval_string = f"""
-            Me: Answer with Yes or No if this feature:
-                {feature_description}\n
-            is present in the following prompt:\n"""
-    for i in range(shots):
-        positive_few_shot.append(get_positive_few_shot_example(feature, eval_prompt, shots=1))
-        # positive_few_shot = ['Prompt ' + str(idx + 1) + ': ' + val for idx, val in enumerate(positive_few_shot)]
-        positive_few_shot[i] = '\n'.join(positive_few_shot[i])
-        negative_few_shot.append(get_negative_few_shot_example(feature, eval_prompt, shots=1))
-    # negative_few_shot = ['Prompt ' + str(idx + 1) + ': ' + val for idx, val in enumerate(negative_few_shot)]
-        negative_few_shot[i] = '\n'.join(negative_few_shot[i])
-        if np.random.choice(2, 1)==1:
-            newsubstring=f"""
-            {negative_few_shot[i]}\n
-            You: No\n
-            Me: and in the following prompt?\n
-            {positive_few_shot[i]}\n
-            You: Yes\n
-            Me: and in the following prompt?\n"""
-            eval_string+=newsubstring
-        else:
-            eval_string+=f"""
-            {positive_few_shot[i]}\n
-            You: Yes\n
-            Me: and in the following prompt?\n
-            {negative_few_shot[i]}\n
-            You: No\n
-            Me: and in the following prompt?\n"""
-
-    eval_string += f"""
-            {eval_prompt}\n
-            You: \n
-            """
-
-    return eval_string, feature_description
-
-
-def createPromptRevised( eval_prompt, feature, shots):
-    feature_description = FEATURES.loc[FEATURES['feature_name'] == feature]['prompt_command'].iloc[0]
-    # include = FEATURES.loc[FEATURES['feature_name'] == feature]['include'].iloc[0]
-    positive_few_shot1 = get_positive_few_shot_example(feature, eval_prompt, shots=shots)
-    # positive_few_shot = ['Prompt ' + str(idx + 1) + ': ' + val for idx, val in enumerate(positive_few_shot)]
-    positive_few_shot1 = '\n'.join(positive_few_shot1)
-    negative_few_shot1 = get_negative_few_shot_example(feature, eval_prompt, shots=shots)
-    # negative_few_shot = ['Prompt ' + str(idx + 1) + ': ' + val for idx, val in enumerate(negative_few_shot)]
-    negative_few_shot1 = '\n'.join(negative_few_shot1)
-
-    positive_few_shot2 = get_positive_few_shot_example(feature, eval_prompt, shots=shots)
-    # positive_few_shot = ['Prompt ' + str(idx + 1) + ': ' + val for idx, val in enumerate(positive_few_shot)]
-    positive_few_shot2 = '\n'.join(positive_few_shot2)
-    negative_few_shot2 = get_negative_few_shot_example(feature, eval_prompt, shots=shots)
-    # negative_few_shot = ['Prompt ' + str(idx + 1) + ': ' + val for idx, val in enumerate(negative_few_shot)]
-    negative_few_shot2 = '\n'.join(negative_few_shot2)
-
-    eval_string = f"""Me: Answer with Yes or No if this feature:
-            {feature_description}\n
-            is present in the following prompt:\n
-            {positive_few_shot1}\n
-            You: Yes\n
-            Me: and in the following prompt?\n
-            {negative_few_shot1}\n
-            You: No\n
-            Me: and in the following prompt?\n
-            {negative_few_shot2}\n
-            You: No\n
-            Me: and in the following prompt?\n
-            {positive_few_shot2}\n
-            You: Yes\n
-
-            Me: and in the following prompt?\n
-            {eval_prompt}\n
-            You: \n
-            """
-    return eval_string, feature_description
-
-def createPromptGregor(eval_prompt, feature, shots):
-    feature_description = FEATURES.loc[FEATURES['feature_name'] == feature]['prompt_command'].iloc[0]
-    # include = FEATURES.loc[FEATURES['feature_name'] == feature]['include'].iloc[0]
-    positive_few_shot = get_positive_few_shot_example(feature, eval_prompt, shots=shots)
-    positive_few_shot = ['Prompt ' + str(idx + 1) + ': ' + val for idx, val in enumerate(positive_few_shot)]
-    positive_few_shot = '\n'.join(positive_few_shot)
-    negative_few_shot = get_negative_few_shot_example(feature, eval_prompt, shots=shots)
-    negative_few_shot = ['Prompt ' + str(idx + 1) + ': ' + val for idx, val in enumerate(negative_few_shot)]
-    negative_few_shot = '\n'.join(negative_few_shot)
-
-    eval_string = f"""Given the following feature:
-            {feature_description}\n
-            The feature is present in the following prompts:
-            {positive_few_shot}\n
-            The feature is not present in the following prompts:
-            {negative_few_shot}\n
-            Tell me whether the feature is present in the prompt given below. Formalize your output as a json object, where the key is the feature description and the associated value is 1 if the feature is present or 0 if not.\n
-            Prompt:
-            {eval_prompt}"""
-    return eval_string, feature_description
-def evaluate_prompt_both( featurelist,eval_prompt, debug=True, shots=1, promptCreator=2):
+def evaluate_prompt_both( featurelist,eval_prompt, debug=True, shots=1, promptCreator):
 
     prompt_annotations = []
     prompt_annotations.append(eval_prompt)
 
     for feature in featurelist:
+        eval_string, feature_description = promptCreator.getPrompt(eval_prompt, feature, shots)
 
-        if promptCreator == 0:
-            eval_string, feature_description = createPromptZero(eval_prompt, feature, shots)
-        elif promptCreator == 1:
-            eval_string, feature_description = createPrompt(eval_prompt, feature, shots)
-        elif promptCreator == 2:
-            eval_string, feature_description = createPromptInverted(eval_prompt, feature, shots)
-        elif promptCreator == 3:
-            eval_string, feature_description = createPromptRevised(eval_prompt, feature, shots)
-        elif promptCreator == 4:
-            eval_string, feature_description = createPromptRandom(eval_prompt, feature, shots)
-        elif promptCreator == 5:
-            eval_string, feature_description = createPromptRandom2(eval_prompt, feature, shots)
-        elif promptCreator == 6:
-            eval_string, feature_description = createPromptRandom3(eval_prompt, feature, shots)
 
         conversation = [{'role': 'system', 'content': eval_string}]
         print('*' * 15 + "  eval string  " + '*' * 15)
@@ -593,12 +110,12 @@ def evaluate_prompt_both( featurelist,eval_prompt, debug=True, shots=1, promptCr
         prompt_annotations_prob = None
         prompt_annotations_det = None
         if eval_prob:
-            prompt_annotations_prob = evaluate_prompt_logits(feature,eval_string_prob, feature_description,eval_prompt,  debug=False)
+            prompt_annotations_prob = evaluate_prompt_logits(feature,eval_string_prob, eval_prompt,  debug=False)
         if eval_det:
             prompt_annotations_det = evaluate_prompt_det(feature,eval_string_det, feature_description,conversation,eval_prompt,  debug=False)
 
         return prompt_annotations_prob, prompt_annotations_det
-def evaluate_prompt_logits(feature,eval_string, feature_description, eval_prompt, debug=True):
+def evaluate_prompt_logits(feature,eval_string,  eval_prompt, debug=True):
     #these must be defined in the outer loop in orde to integrate all the feature for all the prompts
     prompt_annotations = []
     prompt_annotations.append(eval_prompt)
@@ -788,8 +305,8 @@ if __name__ == '__main__':
         for prompt in tqdm(prompts):
             # set debug=False to do actual API calls
             # SATHYA MAKE THSI A loop over features
-            prompt_annotations,det_annotations = evaluate_prompt_both([the_feat],prompt, debug=False, shots=shots,promptCreator=promptCreator)
-            prompt_annotations["feature"]=the_feat
+            prompt_annotations,det_annotations = evaluate_prompt_both(feature_list,prompt, debug=False, shots=shots,promptCreator=promptCreator)
+            #prompt_annotations["feature"]=the_feat
             #SATHA check the best for this prompt_annotations["feature"]=the_feat .
             df_values.append(prompt_annotations)
 #sathya remember to save det_annotations

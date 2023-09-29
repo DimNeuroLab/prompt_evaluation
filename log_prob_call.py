@@ -32,23 +32,6 @@ num_runs= 5
 def completion_with_backoff(**kwargs):
     return openai.Completion.create(**kwargs)
 
-def get_positive_few_shot_example(feature_name, prompt, shots=1):
-    relevant = ANNOTATIONS[['prompt', feature_name]]
-    try:
-        rel_rows = relevant.loc[(relevant['prompt'] != prompt) & (relevant[feature_name] == 1)]
-        return rel_rows.sample(shots)['prompt'].values
-    except:
-        return ''
-
-
-def get_negative_few_shot_example(feature_name, prompt, shots=1):
-    relevant = ANNOTATIONS[['prompt', feature_name]]
-    try:
-        rel_rows = relevant.loc[(relevant['prompt'] != prompt) & (relevant[feature_name] == 0)]
-        return rel_rows.sample(shots)['prompt'].values
-    except:
-        return ''
-
 
 class timeoutLinux:
     def __init__(self, seconds=1, error_message='Timeout'):
