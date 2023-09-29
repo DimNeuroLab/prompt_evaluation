@@ -105,7 +105,7 @@ class timeoutWindows:
     def __enter__(self):
         # signal.signal(signal.SIGALRM, self.handle_timeout)
         # signal.alarm(self.seconds)
-        print("seconds", self.seconds)
+        # print("seconds", self.seconds)
         self.timer = threading.Timer(self.seconds, self.handle_timeout)
         self.timer.start()
 
@@ -543,22 +543,22 @@ def evaluate_prompt_logits(feature, eval_string, feature_description, eval_promp
             print(E)
             print('Timeout, retrying...')
 
+    gt = get_true_label(feature, eval_prompt)
+
     if response and response['choices'][0]["logprobs"]["tokens"][0] in YES_STRINGS | NO_STRINGS:
-        gt = get_true_label(feature, eval_prompt)
 
         value = response['choices'][0]["logprobs"]["token_logprobs"][0]
         response_value_Y = value if response['choices'][0]["logprobs"]["tokens"][0] in YES_STRINGS else -100
         response_value_N = value if response['choices'][0]["logprobs"]["tokens"][0] in NO_STRINGS else -100
-    ### SATHYA COMPARE value  WITH GT TRUTH TO test it gives
-    ###        the same results of evaluate_chat_GPT_prob
-    ###        we must be sure that evaluate_cahgGPT_prob
-    ### evalaute_chatgpt and ensemble load the data in the right order
+
+        print(f"Y: {response_value_Y}; F: {response_value_N}; GT: {gt}")
+
     else:
         response_value_Y = response_value_N = -100
         not_good_response += 1
 
-    print(response_value_Y, response_value_N)
-    prompt_annotations.extend([response_value_Y, response_value_N])
+    # print(response_value_Y, response_value_N)
+    prompt_annotations.extend([response_value_Y, response_value_N, gt[0]])
 
     return prompt_annotations
 
@@ -579,30 +579,43 @@ def evaluate_prompt_det(feature, feature_desc, conversation, evaluation_prompt):
     """
     feature_list = FEATURES['feature_name'].tolist()
     prompt_annotations = [evaluation_prompt]
+    response = None
     try:
         response = openai.ChatCompletion.create(model=DETERMINISTIC_MODEL_NAME, messages=conversation)
-        print("DETERMINISTIC RESPONSE")
+        # print("DETERMINISTIC RESPONSE")
         response_parsed = response['choices'][0]['message']['content']
     except:
         print("DETERMINISTIC RESPONSE")
         response_parsed = {feature_desc: -1}
 
-    response_key = next(iter(response), None)
+    gt = get_true_label(feature, evaluation_prompt)
 
-    response_value = response_parsed.get(response_key, -1) if isinstance(response_parsed, dict) else -1
-    prompt_annotations.append(response_value)
+    if response:
+        response_key = next(iter(response), None)
+
+        response_value = response_parsed.get(response_key, -1) if isinstance(response_parsed, dict) else -1
+        prompt_annotations.append(response_value)
+    else:
+        prompt_annotations.append(-1)
+
+    prompt_annotations.append(gt[0])
 
     return prompt_annotations
 
 
-def build_column_names(current_feature, annotations):
-    df_column_names_1 = [b + a for a, b in product(["_Y", "_N"], [current_feature])]
+def build_column_names(annotations):
+    df_column_names_1 = ["Y", "N"]
     df_column_names = [list(annotations.columns)[0]]
     df_column_names.extend(df_column_names_1)
     df_column_names.insert(0, "feature_name")
 
+    # Add classification
     det_column_names = df_column_names[:-2]
     det_column_names.append("class")
+
+    # Add ground truth
+    df_column_names.append("gt")
+    det_column_names.append("gt")
 
     return df_column_names, det_column_names
 
@@ -612,6 +625,7 @@ def collect_data_values(features, annotations, num_shots):
     det_annotations_data = []
     for _ in range(num_shots):
         prompts = annotations["prompt"].tolist()
+
         for prompt in tqdm(prompts):
             for feature in features["feature_name"]:
                 prompt_annotations, det_annotations = evaluate_prompt_both([feature], prompt, shots=num_shots)
@@ -621,20 +635,28 @@ def collect_data_values(features, annotations, num_shots):
 
                 df_values.append(prompt_annotations)
                 det_annotations_data.append(det_annotations)
+                break
 
-                return df_values, det_annotations_data
+    return df_values, det_annotations_data
 
 
 def save_to_file(data_values, column_names, model_name, deterministic_model_name, num_shots, creator_id,
                  features_filename, annotation_filename, suffix):
     timestr = time.strftime("%Y%m%d-%H%M%S")
-    filename = f"output/single_feature/{model_name} {deterministic_model_name}_evaluation_log_shots_{num_shots}promptgen_{creator_id}_features_file_{features_filename}_annotation_file_{annotation_filename}_{timestr}nobias_{suffix}.tsv"
+    filename = f"output/{model_name} {deterministic_model_name}_evaluation_log_shots_{num_shots}promptgen_{creator_id}_features_file_{features_filename}_annotation_file_{annotation_filename}_{timestr}nobias_{suffix}.tsv"
+
+    print(data_values)
+    print(column_names)
+
     result_data = pd.DataFrame(np.array(data_values), columns=column_names)
     result_data.to_csv(filename, sep="\t", index=False)
 
 
 def main(num_runs):
-    df_column_names, det_column_names = build_column_names(CURRENT_FEATURE, ANNOTATIONS)
+    df_column_names, det_column_names = build_column_names(ANNOTATIONS)
+
+    print(df_column_names)
+    print(det_column_names)
 
     for _ in range(num_runs):
         df_values, det_annotations_data = collect_data_values(FEATURES, ANNOTATIONS, NUMBER_OF_SHOTS)
