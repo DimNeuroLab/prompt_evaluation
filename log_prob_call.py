@@ -21,10 +21,10 @@ FEATURES = pd.read_csv('data/'+features_filename+'.tsv', sep='\t')
 ANNOTATIONS = pd.read_csv('data/'+annotation_filename+'.tsv', sep='\t')
 
 openai.api_key = get_api_key()
-model_name =   "gpt-3.5-turbo-instruct" #'text-davinci-003' # "gpt-3.5-turbo" # #"gpt-4"
-promptCreator=6
-shots=3
-num_runs= 5
+model_name = "gpt-3.5-turbo-instruct" #'text-davinci-003' # "gpt-3.5-turbo" # #"gpt-4"
+promptCreator = 6
+shots = 3
+num_runs = 5
 
 
 
@@ -491,6 +491,7 @@ def evaluate_prompt_logits(eval_prompt, debug=True, shots=1,promptCreator=2):
     feature_list = FEATURES['feature_name'].tolist()
     prompt_annotations = {}
     prompt_annotations['prompt']=eval_prompt
+    
     ## Sathya be careful with this for loop it is inte opposite order of the new code
     for feature in feature_list:
         if promptCreator==1:

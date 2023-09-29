@@ -26,7 +26,8 @@ feature_list = [the_feat] #FEATURES['feature_name'].tolist()
 openai.api_key = get_api_key()
 model_name_det =   "gpt-3.5-turbo"  #"gpt-4"
 model_name_prob =   "gpt-3.5-turbo-instruct" #'text-davinci-003'
-promptCreator=promptCreator(FEATURES,ANNOTATIONS,0)
+promptCreator_id=0
+promptCreator=promptCreator(FEATURES,ANNOTATIONS,promptCreator_id)
 shots=2
 num_runs= 1
 eval_det = True
@@ -91,9 +92,11 @@ class timeoutWindows:
 
 
 def evaluate_prompt_both( featurelist,eval_prompt, shots, promptCreator, debug=True):
+    import copy
+    prompt_annotations_det = {}
+    prompt_annotations_det['eval_prompt'] = eval_prompt
+    prompt_annotations_prob=dict(prompt_annotations_det)
 
-    prompt_annotations = []
-    prompt_annotations.append(eval_prompt)
 
     for feature in featurelist:
         eval_string, feature_description = promptCreator.getPrompt(eval_prompt, feature, shots)
@@ -108,14 +111,12 @@ def evaluate_prompt_both( featurelist,eval_prompt, shots, promptCreator, debug=T
         print(get_true_label(feature, prompt))
         eval_string_prob = eval_string
         eval_string_det = eval_string
-        prompt_annotations_prob = None
-        prompt_annotations_det = None
         if eval_prob:
-            prompt_annotations_prob = evaluate_prompt_logits(feature,eval_string_prob, eval_prompt,  debug=False)
+            prompt_annotations_prob.update(evaluate_prompt_logits(feature,eval_string_prob, eval_prompt,debug=False))
         if eval_det:
-            prompt_annotations_det = evaluate_prompt_det(feature,eval_string_det, feature_description,conversation,eval_prompt,  debug=False)
+            prompt_annotations_det.update(evaluate_prompt_det(feature,eval_string_det, feature_description,conversation,eval_prompt,debug=False))
 
-        return prompt_annotations_prob, prompt_annotations_det
+    return prompt_annotations_prob, prompt_annotations_det
 def evaluate_prompt_logits(feature,eval_string,  eval_prompt, debug=True):
     #these must be defined in the outer loop in orde to integrate all the feature for all the prompts
     prompt_annotations = {}
@@ -314,6 +315,6 @@ if __name__ == '__main__':
 
 
         timestr = time.strftime("%Y%m%d-%H%M%S")
-        result_data = pd.DataFrame(np.array(df_values), columns=df_column_names)
-        result_data.to_csv('output/single_feature/'+model_name_prob+' '+model_name_det+'_evaluation_log_shots_'+str(shots)+'promptgen_'+str(promptCreator)+"_features_file_"+features_filename+"_annotation_file_"+annotation_filename+'_'+timestr+'nobias.tsv', sep='\t', index=False)
+        result_data = pd.DataFrame(np.array(df_values))
+        result_data.to_csv('output/single_feature/'+model_name_prob+' '+model_name_det+'_evaluation_log_shots_'+str(shots)+'promptgen_'+str(promptCreator_id)+"_features_file_"+features_filename+"_annotation_file_"+annotation_filename+'_'+timestr+'nobias.tsv', sep='\t', index=False)
 
