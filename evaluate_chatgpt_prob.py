@@ -86,7 +86,7 @@ def calculate_feature_metrics(filename, predictions_df):
         # Apply the mask to filter rows
         filtered_df = predictions_df[mask]
 
-        ground_truths = predictions_df["gt"].tolist()
+        ground_truths = filtered_df["gt"].tolist()
 
         if "class" in predictions_df.columns:
             # Extract the classification for the det model
@@ -107,7 +107,45 @@ def calculate_feature_metrics(filename, predictions_df):
     return accuracy_scores, f1_scores
 
 
-def evaluate_prob(annotations, files):
+def calculate_prompt_metrics(filename, predictions_df):
+    accuracy_scores = dict()
+    f1_scores = dict()
+
+    accuracy_scores["run"] = filename
+    f1_scores["run"] = filename
+
+    prompts = predictions_df["prompt"].unique()
+
+    for prompt in prompts:
+        mask = (predictions_df["prompt"] == prompt)
+
+        # Apply the mask to filter rows
+        filtered_df = predictions_df[mask]
+
+        ground_truths = filtered_df["gt"].tolist()
+
+        if "class" in predictions_df.columns:
+            # Extract the classification for the det model
+            classifications = filtered_df["class"].tolist()
+        else:
+            # Extract the classification for the prob model
+            is_true = (filtered_df["Y"] > filtered_df["N"]).tolist()
+            # is_false = filtered_df["Y"] < filtered_df["N"]
+            # is_equal = filtered_df["Y"] == filtered_df["N"]
+
+            classifications = [
+                int(val) for val in is_true
+            ]
+
+        print(ground_truths)
+
+        accuracy_scores[prompt] = accuracy_score(ground_truths, classifications)
+        f1_scores[prompt] = f1_score(ground_truths, classifications, average='macro')
+
+    return accuracy_scores, f1_scores
+
+
+def evaluate_prob(files, mode):
     features_results_accuracy = []
     features_results_f1 = []
 
@@ -116,7 +154,11 @@ def evaluate_prob(annotations, files):
 
         # block below for feature-wise evaluation
         # accuracy_scores, f1_scores = get_feature_wise_scores(annotations, CHAT_GPT, f)
-        accuracy_scores, f1_scores = calculate_feature_metrics(f, CHAT_GPT)
+
+        if mode == "feature":
+            accuracy_scores, f1_scores = calculate_feature_metrics(f, CHAT_GPT)
+        else:
+            accuracy_scores, f1_scores = calculate_prompt_metrics(f, CHAT_GPT)
 
         print('ACC', accuracy_scores, sep='\n')
         print('F1', f1_scores, sep='\n')
@@ -126,14 +168,14 @@ def evaluate_prob(annotations, files):
 
     result_data = pd.DataFrame(features_results_f1)
     result_data.to_csv(
-        'output/evaluation_prob_runs_f1.tsv',
+        f"output/{mode}_evaluation_prob_runs_f1.tsv",
         sep='\t', index=False
     )
 
     result_data = pd.DataFrame(features_results_accuracy)
     print(result_data)
     result_data.to_csv(
-        'output/evaluation_prob_runs_accuracy.tsv',
+        f"output/{mode}_evaluation_prob_runs_accuracy.tsv",
         sep='\t', index=False
     )
 
@@ -149,9 +191,9 @@ def evaluate_prob(annotations, files):
 
 
 if __name__ == '__main__':
-    ANNOTATIONS = pd.read_csv('data/annotations.tsv', sep='\t')
+    # ANNOTATIONS = pd.read_csv('data/annotations.tsv', sep='\t')
     files = glob.glob("output/single_feature/gpt-3.5-turbo-instruct*.tsv")
+    MODE = "feature"
 
-    print(files)
-
-    evaluate_prob(ANNOTATIONS, files)
+    # evaluate_prob(ANNOTATIONS, files)
+    evaluate_prob(files, mode=MODE)
