@@ -71,9 +71,12 @@ from sklearn.metrics import accuracy_score, f1_score
 #     return accuracy_scores, f1_scores
 
 
-def calculate_feature_metrics(predictions_df):
+def calculate_feature_metrics(filename, predictions_df):
     accuracy_scores = dict()
     f1_scores = dict()
+
+    accuracy_scores["run"] = filename
+    f1_scores["run"] = filename
 
     features = predictions_df["feature_name"].unique()
 
@@ -113,7 +116,7 @@ def evaluate_prob(annotations, files):
 
         # block below for feature-wise evaluation
         # accuracy_scores, f1_scores = get_feature_wise_scores(annotations, CHAT_GPT, f)
-        accuracy_scores, f1_scores = calculate_feature_metrics(CHAT_GPT)
+        accuracy_scores, f1_scores = calculate_feature_metrics(f, CHAT_GPT)
 
         print('ACC', accuracy_scores, sep='\n')
         print('F1', f1_scores, sep='\n')
