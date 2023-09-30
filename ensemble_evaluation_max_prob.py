@@ -8,11 +8,11 @@ import glob
 import time
 
 
-def get_probs_for_run(true_df, pred_df):
-    list_y={pred_df.columns[0]:true_df.columns[0]}
-    list_y.update({feature + '_Y':feature for feature in true_df.columns[1:]})
-    list_n ={pred_df.columns[0]:true_df.columns[0]}
-    list_n.update({feature + '_N':feature for feature in true_df.columns[1:]})
+def get_probs_for_run(columns, pred_df):
+    #list_y={pred_df.columns[0]:columns[0]}
+    list_y={feature + '_Y':feature for feature in columns}
+    #list_n ={pred_df.columns[0]:columns[0]}
+    list_n={feature + '_N':feature for feature in columns}
     #y_pred=pred_df.filter(items=list_y.keys())
     #n_pred =pred_df.filter(items=list_n.keys())
     y_pred =  pred_df[list_y.keys()].copy()
@@ -109,6 +109,8 @@ if __name__ == '__main__':
 
 
         vote_files = all_files[:num_votes]
+        print("vote_files")
+        print(vote_files)
         p_list_y = []
         p_list_n=[]
         for f in vote_files:
@@ -118,7 +120,7 @@ if __name__ == '__main__':
             # Set the first column as the index
             CHAT_GPT = CHAT_GPT.set_index(CHAT_GPT.columns[0])
 
-            probs_y,probs_n = get_probs_for_run(ANNOTATIONS, CHAT_GPT)
+            probs_y,probs_n = get_probs_for_run(ANNOTATIONS.columns, CHAT_GPT)
             p_list_y.append(probs_y)
             p_list_n.append(probs_n)
         y_stats=all_aggregations(p_list_y)
@@ -134,12 +136,12 @@ if __name__ == '__main__':
         timestr = time.strftime("%Y%m%d-%H%M%S")
         majority_counts.to_csv('output/pred_ense_majority_counts_sel_str'+pred_selection_string.replace('*', 'OO')+
                                "_votes_"+str(num_votes)+"_annotation_file_"
-                           + annotation_filename + '_' + timestr + 'nobias.tsv', sep='\t', index=False)
+                           + annotation_filename + '_' + timestr + 'nobias.tsv', sep='\t')
         majority_values.to_csv('output/pred_ense_majority_max_sel_str'+pred_selection_string.replace('*', 'OO') +
                                "_votes_" +str(num_votes)+ "_annotation_file_"
-                               + annotation_filename + '_' + timestr + 'nobias.tsv', sep='\t', index=False)
+                               + annotation_filename + '_' + timestr + 'nobias.tsv', sep='\t')
         majority_avg_thresh.to_csv('output/pred_ense_majority_avg_thresh_sel_str'+pred_selection_string.replace('*', 'OO')+
                                    "_votes_" +str(num_votes)+ "_annotation_file_"
-                               + annotation_filename + '_' + timestr + 'nobias.tsv', sep='\t', index=False)
+                               + annotation_filename + '_' + timestr + 'nobias.tsv', sep='\t')
 
 

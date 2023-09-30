@@ -25,9 +25,9 @@ feature_list = FEATURES['feature_name'].tolist()
 openai.api_key = get_api_key()
 model_name_det =   "gpt-3.5-turbo"  #"gpt-4"
 model_name_prob =   "gpt-3.5-turbo-instruct" #'text-davinci-003'
-promptCreator_ids=range(4,7)
+promptCreator_ids=[2,6]
 shots=2
-num_runs= 7
+num_runs= 3
 
 eval_det = True
 eval_prob = True
