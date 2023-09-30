@@ -1,0 +1,21 @@
+Topic - concise(1,NaN)	Topic - broken down (1,NaN)	1 Goal (1,NaN)	2 Goals (1,NaN)	>2 Goals (1,NaN)	AI role play (1,NaN)	Role form/context(1,NaN)	Meta Process-related (1,NaN)	Simple sentence structure (1,NaN)	Complex sentence structure (1,NaN)	ActAsPersona- Persona Pattern (1,Nan)	ProvideOutPuts- Persona Pattern (1,Nan)	PatternOrder- Persona Pattern (1,Nan)	StrictSeparationRoleVsOutput- Persona Pattern (1,Nan)	Feature 1: AskMeQuestions-FlippedPattern	Feature 2: ConditionStop-FlippedPattern	Feature 3: Form-FlippedPattern:
+0	1	1	1	0	1	1	1	0	1	1	1	0	1	1	0	0
+0	1	1	1	1	1	1	1	1	1	1	1	1	0	1	0	1
+0	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1
+0	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1
+0	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1
+0	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1
+0	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1
+0	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1
+0	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1
+0	1	1	0	0	0	0	0	0	0	0	0	0	0	0	0	1
+0	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1
+0	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1
+0	1	1	1	1	1	1	1	1	1	1	1	1	0	1	1	1
+0	1	0	1	1	1	1	1	1	1	0	0	0	1	1	1	1
+0	1	0	1	1	1	1	1	1	1	1	1	1	1	1	1	1
+0	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1
+0	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1
+0	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1
+0	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1
+0	0	1	0	1	0	0	1	1	1	0	0	0	0	0	0	0

@@ -1,5 +1,3 @@
-import sys
-from tqdm import tqdm
 import pandas as pd
 import json
 import numpy as np
@@ -13,7 +11,8 @@ from tenacity import (
     stop_after_attempt,
     wait_random_exponential,
 )  # for exponential backoff
-from promptCreators import promptCreator
+from promptCreators import promptCreator as pc
+import functools
 
 features_filename = 'features_new'
 annotation_filename = 'new_majority_annotations'
@@ -26,7 +25,7 @@ feature_list = FEATURES['feature_name'].tolist()
 openai.api_key = get_api_key()
 model_name_det =   "gpt-3.5-turbo"  #"gpt-4"
 model_name_prob =   "gpt-3.5-turbo-instruct" #'text-davinci-003'
-promptCreator_ids=range(7)
+promptCreator_ids=range(4,7)
 shots=2
 num_runs= 7
 
@@ -42,7 +41,9 @@ NO_string_set = {"No", "NO", "N", " No", " NO", " N", "No ", "NO ", "N ", " No "
 def completion_with_backoff(**kwargs):
     return openai.Completion.create(**kwargs)
 
-
+@retry(wait=wait_random_exponential(min=1, max=240), stop=stop_after_attempt(4))
+def chatcompletion_with_backoff(**kwargs):
+    return openai.ChatCompletion.create(**kwargs)
 
 def get_true_label(feature_name, prompt, shots=1):
     relevant = ANNOTATIONS_TEST[['prompt', feature_name]]
@@ -78,13 +79,13 @@ class timeoutWindows:
         self.error_message = error_message +' '+str(seconds)
 
     def handle_timeout(self):
-        print("timemout")
+        print("timemout thrown")
         raise TimeoutError(self.error_message)
 
     def __enter__(self):
         #signal.signal(signal.SIGALRM, self.handle_timeout)
         #signal.alarm(self.seconds)
-        print("seconds",self.seconds)
+        print("seconds before timeout: ",self.seconds)
         self.timer=threading.Timer(self.seconds,self.handle_timeout)
         self.timer.start()
 
@@ -92,6 +93,38 @@ class timeoutWindows:
         self.timer.cancel()
         #signal.alarm(0)
 
+
+# def timeout(func):
+#     def inner_func(*nums, **kwargs):
+#         t = threading.Thread(target=func, args=(*nums,))
+#         t.start()
+#         t.join(timeout=5)
+#     return inner_func
+
+def timeout(seconds_before_timeout):
+    def deco(func):
+        @functools.wraps(func)
+        def wrapper(*args, **kwargs):
+            res = [Exception('function [%s] timeout [%s seconds] exceeded!' % (func.__name__, seconds_before_timeout))]
+            def newFunc():
+                try:
+                    res[0] = func(*args, **kwargs)
+                except Exception as e:
+                    res[0] = e
+            t = threading.Thread(target=newFunc)
+            t.daemon = True
+            try:
+                t.start()
+                t.join(seconds_before_timeout)
+            except Exception as e:
+                print('error starting thread')
+                raise e
+            ret = res[0]
+            if isinstance(ret, BaseException):
+                raise ret
+            return ret
+        return wrapper
+    return deco
 
 def evaluate_prompt_both( featurelist,eval_prompt, shots, promptCreator, debug=True):
     import copy
@@ -134,8 +167,8 @@ def evaluate_prompt_logits(feature,eval_string,  eval_prompt, debug=True):
         max_attempts = 5
         for _ in range(max_attempts):
             try:
-                time.sleep(0.5)
-                with timeoutWindows(seconds=100):
+                time.sleep(0.15)
+                with timeoutWindows(seconds=5):
                     '''
                     response = openai.ChatCompletion.create(
                         model=model_name,
@@ -247,50 +280,58 @@ def evaluate_prompt_det( feature,eval_string,feature_description, conversation,e
     feature_list = FEATURES['feature_name'].tolist()
     prompt_annotations={}
     prompt_annotations["eval_prompt"]=eval_prompt
-
+    print("DET")
     if debug:
         print(50*'*', feature)
         #print(eval_string)
         response = {feature_description: -1}
     else:
-        try:
-            response = openai.ChatCompletion.create(
-                model=model_name_det,
-                messages=conversation
-            )
-            print("DETERMINISTIC RESPONSE1")
-            print("DETERMINISTIC RESPONSE2")
-            print("DETERMINISTIC RESPONSE3")
-            response_parsed=response['choices'][0]['message']['content']
-            print("response det parsed")
-            print(response_parsed)
+        max_attempts = 5
+        for _ in range(max_attempts):
+            try:
+                time.sleep(0.15)
+                #with timeoutWindows(seconds=30):
 
-            print("full response det parsed")
 
-            print(response)
+                response =timeout(5)(openai.ChatCompletion.create)(
+                    model=model_name_det,
+                    messages=conversation
+                )
+                print("DETERMINISTIC RESPONSE1")
+                print("DETERMINISTIC RESPONSE2")
+                print("DETERMINISTIC RESPONSE3")
+                print("full response det parsed")
+                print(response)
+                response_parsed=response['choices'][0]['message']['content']
+                print("response det parsed")
+                print(response_parsed)
 
-            #response_parsed = json.loads(response['choices'][0]['message']['content'])
-        except:
-            print("DETERMINISTIC RESPONSE14")
-            print("DETERMINISTIC RESPONSE25")
-            print("DETERMINISTIC RESPONSE36")
-            print(response)
-            #print(eval_string)
-            response_parsed = {feature_description: -1}
+                if response_parsed in YES_string_set:
+                        response_value =1
+                        break
+                elif response_parsed in NO_string_set:
+                        response_value=-1
+                        break
+                else:
+                        print("parse error")
+                        response_value=0
+                        # except:
+                        #     print("except response_parsed")
+                        #     print(response_parsed)
+                        #     response_value = -1
 
-    try:
-#        key = list(response.keys())[0]
-        if response_parsed in YES_string_set:
-            response_value =1
-        elif response_parsed in NO_string_set:
-            response_value=-1
-        else:
-            print("parse error")
-            response_value=0
+            except Exception as EXX:
+                print("exx")
+                print(EXX)
+                print("DETERMINISTIC RESPONSE14")
+                print("DETERMINISTIC RESPONSE25")
+                print("DETERMINISTIC RESPONSE36")
+                #print(eval_string)
+                response_parsed = -1
+                pass
 
-    except:
-        print(response_parsed)
-        response_value = -1
+
+
     prompt_annotations[feature]=response_value
 
     return prompt_annotations
@@ -307,7 +348,7 @@ if __name__ == '__main__':
     print(list(ANNOTATIONS.columns))
     print(df_column_names)
     for promptCreator_id in promptCreator_ids:
-        promptCreator=promptCreator(FEATURES,ANNOTATIONS,promptCreator_id)
+        promptCreator=pc(FEATURES,ANNOTATIONS,promptCreator_id)
 
         for _ in range(num_runs):
             df_values_prob = []
@@ -315,23 +356,19 @@ if __name__ == '__main__':
 
             prompts = ANNOTATIONS['prompt'].tolist()
 
-            for counter,prompt in enumerate(tqdm(prompts)):
+            for counter,prompt in enumerate(prompts):
                 print('+'*60)
                 print('+' * 60)
                 print(counter,prompt)
                 print('+' * 60)
                 print('+' * 60)
 
-                # set debug=False to do actual API calls
-                # SATHYA MAKE THSI A loop over features
                 prompt_annotations_prob,det_annotations = evaluate_prompt_both(feature_list,prompt, debug=False, shots=shots,promptCreator=promptCreator)
-                #prompt_annotations["feature"]=the_feat
-                #SATHA check the best for this prompt_annotations["feature"]=the_feat .
                 df_values_prob.append(prompt_annotations_prob)
                 df_values_det.append(det_annotations)
 
-                if counter>1:
-                    break
+                #if counter>1:
+                  #  break
     #sathya remember to save det_annotations
 
 

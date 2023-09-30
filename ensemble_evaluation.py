@@ -4,6 +4,7 @@ import numpy as np
 import pandas as pd
 from scipy.stats import mode
 from sklearn.metrics import accuracy_score, f1_score
+import glob
 
 
 def get_votes_for_run(true_df, pred_df):
@@ -60,22 +61,22 @@ if __name__ == '__main__':
     # relevant_files_str = 'gpt-3.5-turbo-instruct_evaluation_log_shots_3promptgen_3_features_file_features_new_annotation_file_new_majority_annotations'
     relevant_files_str = 'gpt-3.5-turbo-instruct_evaluation_log_shots_3promptgen_4_features_file_features_new_annotation_file_new_majority_annotations'
 
-    all_files = os.listdir('output')
-    all_files = [f for f in all_files if (f[:len(relevant_files_str)] == relevant_files_str and len(f) <= len(relevant_files_str) + 20)]
-
+    #all_files = os.listdir('output')
+    #all_files = [f for f in all_files if (f[:len(relevant_files_str)] == relevant_files_str and len(f) <= len(relevant_files_str) + 20)]
+    all_files = glob.glob("output/evaluation_prob_gpt*.tsv")
     #print(len(all_files))
     #sys.exit(0)
 
     features_results_accuracy = []
     features_results_f1 = []
 
-    for num_votes in range(3, 12, 2):
+    for num_votes in range(3, 8, 2):
         print('VOTES', num_votes)
 
         vote_files = all_files[:num_votes]
         v_list = []
         for f in vote_files:
-            CHAT_GPT = pd.read_csv('output/' + f, sep='\t')
+            CHAT_GPT = pd.read_csv(f, sep='\t')
             votes = get_votes_for_run(ANNOTATIONS, CHAT_GPT)
             v_list.append(votes)
 

@@ -493,9 +493,9 @@ class promptCreator:
         if self.promptCreatorid == 0:
             return self. createPromptZero(eval_prompt, feature, shots)
         elif self.promptCreatorid == 1:
-            return createPrompt(eval_prompt, feature, shots)
+            return self.createPrompt(eval_prompt, feature, shots)
         elif self.promptCreatorid == 2:
-            return  createPromptInverted(eval_prompt, feature, shots)
+            return  self.createPromptInverted(eval_prompt, feature, shots)
         elif self.promptCreatorid == 3:
             return self.createPromptRevised(eval_prompt, feature, shots)
         elif self.promptCreatorid == 4:

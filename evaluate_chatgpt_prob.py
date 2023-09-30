@@ -18,11 +18,9 @@ def get_prompt_wise_scores(true_df, pred_df, filler=0):
     return accuracy_scores, f1_scores
 
 
-def get_feature_wise_scores(true_df, pred_df, filename, filler=0):
-    accuracy_scores = {}
-    f1_scores = {}
-    accuracy_scores['run'] = f
-    f1_scores['run'] = f
+def get_feature_wise_scores(true_df, pred_df,f):
+    accuracy_scores= {'run': f}
+    f1_scores= {'run': f}
     for feature in list(true_df.columns)[1:]:
         y_true = true_df[feature].tolist()
         y_pred = pred_df[feature+'_Y'].to_numpy()
@@ -41,7 +39,7 @@ def get_feature_wise_scores(true_df, pred_df, filename, filler=0):
 if __name__ == '__main__':
 
     ANNOTATIONS = pd.read_csv('data/annotations.tsv', sep='\t')
-    files = glob.glob("output/gpt-3.5-turbo-instruct_evaluation_log_shots_3promptgen_6*.tsv")
+    files = glob.glob("output/evaluation_prob_gpt*.tsv")
     features_results_accuracy = []
     features_results_f1 = []
     prompt_results_accuracy = []
@@ -51,6 +49,7 @@ if __name__ == '__main__':
         CHAT_GPT = pd.read_csv(f, sep='\t')
         print('f')
         print(f)
+        print(CHAT_GPT)
 
         # block below for feature-wise evaluation
         accuracy_scores, f1_scores = get_feature_wise_scores(ANNOTATIONS, CHAT_GPT,f)
