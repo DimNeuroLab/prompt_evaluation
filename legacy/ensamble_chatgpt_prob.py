@@ -40,7 +40,7 @@ def get_feature_wise_scores(true_df, pred_df, filename, filler=0):
 
 if __name__ == '__main__':
 
-    ANNOTATIONS = pd.read_csv('data/annotations.tsv', sep='\t')
+    ANNOTATIONS = pd.read_csv('../data/annotations.tsv', sep='\t')
     files = glob.glob("output/*log_2shots*.tsv")
     features_results_accuracy=[]
     features_results_f1 = []

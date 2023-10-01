@@ -7,8 +7,8 @@ import openai
 from utils import get_api_key
 
 
-FEATURES = pd.read_csv('data/features.tsv', sep='\t')
-ANNOTATIONS = pd.read_csv('data/annotations.tsv', sep='\t')
+FEATURES = pd.read_csv('../data/features.tsv', sep='\t')
+ANNOTATIONS = pd.read_csv('../data/annotations.tsv', sep='\t')
 
 openai.api_key = get_api_key()
 model_name = "gpt-3.5-turbo"

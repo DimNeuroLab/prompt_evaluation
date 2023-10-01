@@ -45,7 +45,7 @@ def get_scores(true_df, majority_votes_dict, run, num_votes):
 
 
 if __name__ == '__main__':
-    ANNOTATIONS = pd.read_csv('data/annotations.tsv', sep='\t')
+    ANNOTATIONS = pd.read_csv('../data/annotations.tsv', sep='\t')
 
     model_name = 'gpt-3.5-turbo-instruct'
     shots = '2'

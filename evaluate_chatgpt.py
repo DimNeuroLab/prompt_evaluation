@@ -90,6 +90,7 @@ def get_feature_wise_scores(true_df, pred_df,f, filler=0):
 
 if __name__ == '__main__':
     ANNOTATIONS = pd.read_csv('data/annotations.tsv', sep='\t')
+    TEST_ANNOTATIONS = pd.read_csv('data/Test_Set_Cansu.tsv', sep='\t')
     pred_selection_string = "*gpt-4*" #"evaluation_detgpt-3.5*" #"pred_ense_majority_*"
     files =  glob.glob("output/" + pred_selection_string + ".tsv")
     #CHAT_GPT = pd.read_csv('output/chatgpt_evaluation_1shot.tsv', sep='\t')
