@@ -25,9 +25,9 @@ feature_list = FEATURES['feature_name'].tolist()
 openai.api_key = get_api_key()
 model_name_det =   "gpt-4" #"gpt-3.5-turbo"  #
 model_name_prob =   "gpt-3.5-turbo-instruct" #'text-davinci-003'
-promptCreator_ids=[6]
+promptCreator_ids=[0,2]
 shots=2
-num_runs= 3
+num_runs= 1
 
 eval_det = True
 eval_prob = False
@@ -289,11 +289,11 @@ def evaluate_prompt_det( feature,eval_string,feature_description, conversation,e
         max_attempts = 5
         for _ in range(max_attempts):
             try:
-                time.sleep(0.15)
+                time.sleep(5)
                 #with timeoutWindows(seconds=30):
 
 
-                response =timeout(5)(openai.ChatCompletion.create)(
+                response =timeout(20)(openai.ChatCompletion.create)(
                     model=model_name_det,
                     messages=conversation
                 )
