@@ -16,7 +16,7 @@ import functools
 
 features_filename = 'features_new'
 annotation_filename = 'new_majority_annotations'
-test_annotation_filename = 'Test_Set'
+test_annotation_filename = 'TEST_ANNOTATIONS_DO'
 FEATURES = pd.read_csv('data/'+features_filename+'.tsv', sep='\t')
 ANNOTATIONS = pd.read_csv('data/'+annotation_filename+'.tsv', sep='\t')
 TEST_ANNOTATIONS = pd.read_csv('data/'+test_annotation_filename+'.tsv', sep='\t')
@@ -26,7 +26,7 @@ feature_list = FEATURES['feature_name'].tolist()
 openai.api_key = get_api_key()
 model_name_det =   "gpt-4" #"gpt-3.5-turbo"  #
 model_name_prob =   "gpt-3.5-turbo-instruct" #'text-davinci-003'
-promptCreator_ids=[0]
+promptCreator_ids=[0,2]
 shots=2
 num_runs= 1
 
@@ -390,6 +390,6 @@ if __name__ == '__main__':
                 result_data = pd.DataFrame(df_values_det)
                 result_data.to_csv('output/evaluation_det' + model_name_det + '_shots_' +
                                    str(shots) + 'promptgen_' + str(promptCreator_id) + "_features_file_" + features_filename +
-                                   "_annotation_file_" + annotation_filename + '_' + timestr + 'nobias.tsv',
+                                   "_ann_" + annotation_filename +'_tst_ '+annotation_filename+'_' + timestr + 'nobias.tsv',
                                    sep='\t', index=False)
 
