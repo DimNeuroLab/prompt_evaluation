@@ -96,7 +96,7 @@ if __name__ == '__main__':
 
     #all_files = os.listdir('output')
     #all_files = [f for f in all_files if (f[:len(relevant_files_str)] == relevant_files_str and len(f) <= len(relevant_files_str) + 20)]
-    pred_selection_string="evaluation_prob_gpt-*_shots_2promptgen_*" #"evaluation_prob_gpt*"
+    pred_selection_string="evaluation_det*" #"evaluation_prob_gpt*"
     all_files = glob.glob("output/"+pred_selection_string+".tsv")
     #print(len(all_files))
     #sys.exit(0)
@@ -104,45 +104,44 @@ if __name__ == '__main__':
     features_results_accuracy = []
     features_results_f1 = []
 
-    for num_votes in range(9, 21, 2):
+    for num_votes in range(3, 8, 2):
         print('VOTES', num_votes)
 
-        for permutation in range(5):
 
-            vote_files = all_files[:num_votes]
-            print("vote_files")
-            print(vote_files)
-            p_list_y = []
-            p_list_n=[]
-            for f in vote_files:
-                CHAT_GPT = pd.read_csv(f, sep='\t')
-                #CHAT_GPT.columns = CHAT_GPT.iloc[0]
+        vote_files = all_files[:num_votes]
+        print("vote_files")
+        print(vote_files)
+        p_list_y = []
+        # p_list_n=[]
+        for f in vote_files:
+            CHAT_GPT = pd.read_csv(f, sep='\t')
+            #CHAT_GPT.columns = CHAT_GPT.iloc[0]
 
-                # Set the first column as the index
-                CHAT_GPT = CHAT_GPT.set_index(CHAT_GPT.columns[0])
+            # Set the first column as the index
+            CHAT_GPT = CHAT_GPT.set_index(CHAT_GPT.columns[0])
 
-                probs_y,probs_n = get_probs_for_run(ANNOTATIONS.columns, CHAT_GPT)
-                p_list_y.append(probs_y)
-                p_list_n.append(probs_n)
-            y_stats=all_aggregations(p_list_y)
-            n_stats=all_aggregations(p_list_n)
-            majority_counts=argmax([n_stats['count'],y_stats['count']])
-            majority_values = argmax([n_stats['max'], y_stats['max']])
-            majority_avg_thresh = argmax([n_stats['avg_thresh'], y_stats['avg_thresh']])
+            # probs_y,probs_n = get_probs_for_run(ANNOTATIONS.columns, CHAT_GPT)
+            p_list_y.append(CHAT_GPT)
+            # p_list_n.append(probs_n)
+        y_stats=all_aggregations(p_list_y,0)
+        # n_stats=all_aggregations(p_list_n)
+        majority_counts=y_stats['count'][y_stats['count']>(len(vote_files)/2.0)]
+        # majority_values = argmax([n_stats['max'], y_stats['max']])
+        # majority_avg_thresh = argmax([n_stats['avg_thresh'], y_stats['avg_thresh']])
 
-            # p_list_y=pd.concat(p_list_y,axis=2)
-            # p_list_n = pd.concat(p_list_n,keys=vote_files)
-            # majority_dict = get_feature_highest_prob_vote(ANNOTATIONS, p_list_y,p_list_n)
+        # p_list_y=pd.concat(p_list_y,axis=2)
+        # p_list_n = pd.concat(p_list_n,keys=vote_files)
+        # majority_dict = get_feature_highest_prob_vote(ANNOTATIONS, p_list_y,p_list_n)
 
-            timestr = time.strftime("%Y%m%d-%H%M%S")
-            majority_counts.to_csv('output/pred_ense_majority_counts_sel_str'+pred_selection_string.replace('*', 'OO')+
-                                   "_votes_"+str(num_votes)+"_annotation_file_"
-                               + annotation_filename + '_' + timestr + 'nobias.tsv', sep='\t')
-            majority_values.to_csv('output/pred_ense_majority_max_sel_str'+pred_selection_string.replace('*', 'OO') +
-                                   "_votes_" +str(num_votes)+ "_annotation_file_"
-                                   + annotation_filename + '_' + timestr + 'nobias.tsv', sep='\t')
-            majority_avg_thresh.to_csv('output/pred_ense_majority_avg_thresh_sel_str'+pred_selection_string.replace('*', 'OO')+
-                                       "_votes_" +str(num_votes)+ "_annotation_file_"
-                                   + annotation_filename + '_' + timestr + 'nobias.tsv', sep='\t')
+        timestr = time.strftime("%Y%m%d-%H%M%S")
+        majority_counts.to_csv('output/pred_ense_majority_counts_sel_str'+pred_selection_string.replace('*', 'OO')+
+                               "_votes_"+str(num_votes)+"_annotation_file_"
+                           + annotation_filename + '_' + timestr + 'nobias.tsv', sep='\t')
+        # majority_values.to_csv('output/pred_ense_majority_max_sel_str'+pred_selection_string.replace('*', 'OO') +
+        #                        "_votes_" +str(num_votes)+ "_annotation_file_"
+        #                        + annotation_filename + '_' + timestr + 'nobias.tsv', sep='\t')
+        # majority_avg_thresh.to_csv('output/pred_ense_majority_avg_thresh_sel_str'+pred_selection_string.replace('*', 'OO')+
+        #                            "_votes_" +str(num_votes)+ "_annotation_file_"
+        #                        + annotation_filename + '_' + timestr + 'nobias.tsv', sep='\t')
 
 

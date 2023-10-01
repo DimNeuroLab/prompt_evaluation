@@ -37,6 +37,7 @@ def get_feature_wise_scores(true_df, pred_df, filename, filler=0):
     return accuracy_scores, f1_scores
 
 
+
 if __name__ == '__main__':
 
     ANNOTATIONS = pd.read_csv('data/annotations.tsv', sep='\t')

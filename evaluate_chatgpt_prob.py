@@ -36,10 +36,39 @@ def get_feature_wise_scores(true_df, pred_df,f):
     return accuracy_scores, f1_scores
 
 
+def group(df, name, keyword="2023", index_column='run'):
+    def extract_prefix(index):
+        return index.split(keyword)[0]
+
+    df.set_index(index_column, inplace=True)
+    # Group the rows by prefix
+    groups = df.groupby(extract_prefix)
+    results = pd.DataFrame()
+
+    for group_name, group_data in groups:
+        # Compute the mean for each column
+        group_mean = {}
+        group_mean['Group'] = f'Mean_{group_name}'  # Add a new 'Group' row
+        group_stdev = {}
+        group_stdev['Group'] = f'StDev_{group_name}'  # Add a new 'Group' row
+        group_mean.update(group_data.mean())
+        group_stdev.update(group_data.std())
+        # Append the group_mean to the result dataframe
+        results = results.append(group_mean, ignore_index=True)
+        results = results.append(group_stdev, ignore_index=True)
+
+    # Print the results
+    print(results)
+    results.to_csv('output\group_eval_prob_runs_' + name + '.tsv',
+                   sep='\t', index=False)
+
 if __name__ == '__main__':
 
     ANNOTATIONS = pd.read_csv('data/annotations.tsv', sep='\t')
-    files = glob.glob("output/evaluation_prob_gpt*.tsv")
+    pred_selection_string = "evaluation_prob_gpt*"  # "pred_ense_majority_*"
+    files = glob.glob("output/" + pred_selection_string + ".tsv")
+
+
     features_results_accuracy = []
     features_results_f1 = []
     prompt_results_accuracy = []
@@ -64,6 +93,8 @@ if __name__ == '__main__':
     result_data = pd.DataFrame(features_results_accuracy)
     result_data.to_csv('output\evaluation_prob_runs_accuracy.tsv',
                        sep='\t', index=False)
+
+    group(result_data, "_acc" + pred_selection_string.replace('*', "OO"))
 
     # uncomment block below for prompt-wise evaluation
     '''
