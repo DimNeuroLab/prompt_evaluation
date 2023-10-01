@@ -23,14 +23,14 @@ the_feat = "1 Goal (1,NaN)"
 feature_list = FEATURES['feature_name'].tolist()
 #feature_list = [the_feat] #FEATURES['feature_name'].tolist()
 openai.api_key = get_api_key()
-model_name_det =   "gpt-3.5-turbo"  #"gpt-4"
+model_name_det =   "gpt-4" #"gpt-3.5-turbo"  #
 model_name_prob =   "gpt-3.5-turbo-instruct" #'text-davinci-003'
 promptCreator_ids=[6]
 shots=2
 num_runs= 3
 
 eval_det = True
-eval_prob = True
+eval_prob = False
 YES_string_set={"Yes","YES","Y"," Yes"," YES"," Y","Yes ","YES ","Y "," Yes "," YES "," Y ",}
 NO_string_set = {"No", "NO", "N", " No", " NO", " N", "No ", "NO ", "N ", " No ", " NO "," N", }
 
@@ -379,14 +379,16 @@ if __name__ == '__main__':
 
 
             timestr = time.strftime("%Y%m%d-%H%M%S")
-            result_data = pd.DataFrame(df_values_prob)
-            result_data.to_csv('output/evaluation_prob_'+model_name_prob+'_'+model_name_det+'_shots_'+str(shots)+
-                               'promptgen_'+str(promptCreator_id)+"_features_file_"+features_filename+"_annotation_file_"
-                               +annotation_filename+'_'+timestr+'nobias.tsv', sep='\t', index=False)
+            if eval_prob:
+                result_data = pd.DataFrame(df_values_prob)
+                result_data.to_csv('output/evaluation_prob_'+model_name_prob+'_'+model_name_det+'_shots_'+str(shots)+
+                                   'promptgen_'+str(promptCreator_id)+"_features_file_"+features_filename+"_annotation_file_"
+                                   +annotation_filename+'_'+timestr+'nobias.tsv', sep='\t', index=False)
 
-            result_data = pd.DataFrame(df_values_det)
-            result_data.to_csv('output/evaluation_det' + model_name_prob + ' ' + model_name_det + '_shots_' +
-                               str(shots) + 'promptgen_' + str(promptCreator_id) + "_features_file_" + features_filename +
-                               "_annotation_file_" + annotation_filename + '_' + timestr + 'nobias.tsv',
-                               sep='\t', index=False)
+            if eval_det:
+                result_data = pd.DataFrame(df_values_det)
+                result_data.to_csv('output/evaluation_det' + model_name_prob + ' ' + model_name_det + '_shots_' +
+                                   str(shots) + 'promptgen_' + str(promptCreator_id) + "_features_file_" + features_filename +
+                                   "_annotation_file_" + annotation_filename + '_' + timestr + 'nobias.tsv',
+                                   sep='\t', index=False)
 

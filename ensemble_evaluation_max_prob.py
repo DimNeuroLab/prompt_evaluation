@@ -108,8 +108,13 @@ if __name__ == '__main__':
         print('VOTES', num_votes)
 
         for permutation in range(5):
+            import random
 
-            vote_files = all_files[:num_votes]
+            shuffled_list = list(all_files)
+
+            # Shuffle the list to get a random permutation
+            random.shuffle(shuffled_list)
+            vote_files = shuffled_list[:num_votes]
             print("vote_files")
             print(vote_files)
             p_list_y = []
@@ -137,12 +142,12 @@ if __name__ == '__main__':
             timestr = time.strftime("%Y%m%d-%H%M%S")
             majority_counts.to_csv('output/pred_ense_majority_counts_sel_str'+pred_selection_string.replace('*', 'OO')+
                                    "_votes_"+str(num_votes)+"_annotation_file_"
-                               + annotation_filename + '_' + timestr + 'nobias.tsv', sep='\t')
+                               + annotation_filename + '_' + timestr + 'perm'+str(permutation)+'.tsv', sep='\t')
             majority_values.to_csv('output/pred_ense_majority_max_sel_str'+pred_selection_string.replace('*', 'OO') +
                                    "_votes_" +str(num_votes)+ "_annotation_file_"
-                                   + annotation_filename + '_' + timestr + 'nobias.tsv', sep='\t')
+                                   + annotation_filename + '_' + timestr + 'perm'+str(permutation)+'.tsv', sep='\t')
             majority_avg_thresh.to_csv('output/pred_ense_majority_avg_thresh_sel_str'+pred_selection_string.replace('*', 'OO')+
                                        "_votes_" +str(num_votes)+ "_annotation_file_"
-                                   + annotation_filename + '_' + timestr + 'nobias.tsv', sep='\t')
+                                   + annotation_filename + '_' + timestr + 'perm'+str(permutation)+'.tsv', sep='\t')
 
 

@@ -26,26 +26,27 @@ def get_probs_for_run(columns, pred_df):
 
 def all_aggregations(pd_list,threshold=-99):
     # Create empty dataframes to store max, argmax, sum, and median values
-    max_df = pd.DataFrame(columns=pd_list[0].columns, index=pd_list[0].index)
-    argmax_df = pd.DataFrame(columns=pd_list[0].columns, index=pd_list[0].index)
-    sum_df = pd.DataFrame(columns=pd_list[0].columns, index=pd_list[0].index)
-    median_df = pd.DataFrame(columns=pd_list[0].columns, index=pd_list[0].index)
+    #max_df = pd.DataFrame(columns=pd_list[0].columns, index=pd_list[0].index)
+    #argmax_df = pd.DataFrame(columns=pd_list[0].columns, index=pd_list[0].index)
+    #sum_df = pd.DataFrame(columns=pd_list[0].columns, index=pd_list[0].index)
+    #median_df = pd.DataFrame(columns=pd_list[0].columns, index=pd_list[0].index)
     count_df = pd.DataFrame(columns=pd_list[0].columns, index=pd_list[0].index)
-    avg_thresh = pd.DataFrame(columns=pd_list[0].columns, index=pd_list[0].index)
+    #avg_thresh = pd.DataFrame(columns=pd_list[0].columns, index=pd_list[0].index)
 
     # Iterate through cells and compute max, argmax, sum, and median
     for col in pd_list[0].columns:
         for row in pd_list[0].index:
             cell_values = [df.at[row, col] for df in pd_list]
-            max_df.at[row, col] = max(cell_values)
-            argmax_df.at[row, col] = cell_values.index(max(cell_values))
-            sum_df.at[row, col] = sum(cell_values)
-            median_df.at[row, col] = np.median(cell_values)
+     #       max_df.at[row, col] = max(cell_values)
+     #        argmax_df.at[row, col] = cell_values.index(max(cell_values))
+     #        sum_df.at[row, col] = sum(cell_values)
+            # median_df.at[row, col] = np.median(cell_values)
             count_df.at[row,col]=sum(value > threshold for value in cell_values)
-            avg_thresh.at[row,col]=threshold
-            if count_df.at[row, col]>0:
-                avg_thresh.at[row,col]=sum(value  for value in cell_values if value> threshold)/count_df.at[row,col]
-    return {'max':max_df,'argmax':argmax_df,'sum':sum_df,'median':median_df,'count':count_df,'avg_thresh':avg_thresh}
+            # avg_thresh.at[row,col]=threshold
+            # if count_df.at[row, col]>0:
+            #     avg_thresh.at[row,col]=sum(value  for value in cell_values if value> threshold)/count_df.at[row,col]
+    # return {'max':max_df,'argmax':argmax_df,'sum':sum_df,'median':median_df,'count':count_df,'avg_thresh':avg_thresh}
+    return{'count':count_df}
 
 def argmax(pd_list):
     # Create empty dataframes to store max, argmax, sum, and median values
@@ -96,7 +97,7 @@ if __name__ == '__main__':
 
     #all_files = os.listdir('output')
     #all_files = [f for f in all_files if (f[:len(relevant_files_str)] == relevant_files_str and len(f) <= len(relevant_files_str) + 20)]
-    pred_selection_string="evaluation_det*" #"evaluation_prob_gpt*"
+    pred_selection_string="evaluation_detgpt*" #"evaluation_prob_gpt*"
     all_files = glob.glob("output/"+pred_selection_string+".tsv")
     #print(len(all_files))
     #sys.exit(0)
@@ -104,44 +105,52 @@ if __name__ == '__main__':
     features_results_accuracy = []
     features_results_f1 = []
 
-    for num_votes in range(3, 8, 2):
+    for num_votes in range(9, 21, 2):
         print('VOTES', num_votes)
 
 
-        vote_files = all_files[:num_votes]
-        print("vote_files")
-        print(vote_files)
-        p_list_y = []
-        # p_list_n=[]
-        for f in vote_files:
-            CHAT_GPT = pd.read_csv(f, sep='\t')
-            #CHAT_GPT.columns = CHAT_GPT.iloc[0]
 
-            # Set the first column as the index
-            CHAT_GPT = CHAT_GPT.set_index(CHAT_GPT.columns[0])
+        for permutation in range(5):
+            import random
 
-            # probs_y,probs_n = get_probs_for_run(ANNOTATIONS.columns, CHAT_GPT)
-            p_list_y.append(CHAT_GPT)
-            # p_list_n.append(probs_n)
-        y_stats=all_aggregations(p_list_y,0)
-        # n_stats=all_aggregations(p_list_n)
-        majority_counts=y_stats['count'][y_stats['count']>(len(vote_files)/2.0)]
-        # majority_values = argmax([n_stats['max'], y_stats['max']])
-        # majority_avg_thresh = argmax([n_stats['avg_thresh'], y_stats['avg_thresh']])
+            shuffled_list = list(all_files)
 
-        # p_list_y=pd.concat(p_list_y,axis=2)
-        # p_list_n = pd.concat(p_list_n,keys=vote_files)
-        # majority_dict = get_feature_highest_prob_vote(ANNOTATIONS, p_list_y,p_list_n)
+            # Shuffle the list to get a random permutation
+            random.shuffle(shuffled_list)
+            vote_files = shuffled_list[:num_votes]
+            print("vote_files")
+            print(vote_files)
+            p_list_y = []
+            # p_list_n=[]
+            for f in vote_files:
+                CHAT_GPT = pd.read_csv(f, sep='\t')
+                #CHAT_GPT.columns = CHAT_GPT.iloc[0]
 
-        timestr = time.strftime("%Y%m%d-%H%M%S")
-        majority_counts.to_csv('output/pred_ense_majority_counts_sel_str'+pred_selection_string.replace('*', 'OO')+
-                               "_votes_"+str(num_votes)+"_annotation_file_"
-                           + annotation_filename + '_' + timestr + 'nobias.tsv', sep='\t')
-        # majority_values.to_csv('output/pred_ense_majority_max_sel_str'+pred_selection_string.replace('*', 'OO') +
-        #                        "_votes_" +str(num_votes)+ "_annotation_file_"
-        #                        + annotation_filename + '_' + timestr + 'nobias.tsv', sep='\t')
-        # majority_avg_thresh.to_csv('output/pred_ense_majority_avg_thresh_sel_str'+pred_selection_string.replace('*', 'OO')+
-        #                            "_votes_" +str(num_votes)+ "_annotation_file_"
-        #                        + annotation_filename + '_' + timestr + 'nobias.tsv', sep='\t')
+                # Set the first column as the index
+                CHAT_GPT = CHAT_GPT.set_index(CHAT_GPT.columns[0])
+
+                # probs_y,probs_n = get_probs_for_run(ANNOTATIONS.columns, CHAT_GPT)
+                p_list_y.append(CHAT_GPT)
+                # p_list_n.append(probs_n)
+            y_stats=all_aggregations(p_list_y,0)
+            # n_stats=all_aggregations(p_list_n)
+            majority_counts=y_stats['count'].applymap(lambda x: 1 if x > (len(vote_files)/2.0) else 0)
+            # majority_values = argmax([n_stats['max'], y_stats['max']])
+            # majority_avg_thresh = argmax([n_stats['avg_thresh'], y_stats['avg_thresh']])
+
+            # p_list_y=pd.concat(p_list_y,axis=2)
+            # p_list_n = pd.concat(p_list_n,keys=vote_files)
+            # majority_dict = get_feature_highest_prob_vote(ANNOTATIONS, p_list_y,p_list_n)
+
+            timestr = time.strftime("%Y%m%d-%H%M%S")
+            majority_counts.to_csv('output/pred_ense_majority_counts_sel_str'+pred_selection_string.replace('*', 'OO')+
+                                   "_votes_"+str(num_votes)+"_annotation_file_"
+                               + annotation_filename + '_' + timestr + 'perm'+str(permutation)+'.tsv', sep='\t')
+            # majority_values.to_csv('output/pred_ense_majority_max_sel_str'+pred_selection_string.replace('*', 'OO') +
+            #                        "_votes_" +str(num_votes)+ "_annotation_file_"
+            #                        + annotation_filename + '_' + timestr + 'nobias.tsv', sep='\t')
+            # majority_avg_thresh.to_csv('output/pred_ense_majority_avg_thresh_sel_str'+pred_selection_string.replace('*', 'OO')+
+            #                            "_votes_" +str(num_votes)+ "_annotation_file_"
+            #                        + annotation_filename + '_' + timestr + 'nobias.tsv', sep='\t')
 
 
