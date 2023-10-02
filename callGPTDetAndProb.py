@@ -26,8 +26,8 @@ feature_list = FEATURES['feature_name'].tolist()
 openai.api_key = get_api_key()
 model_name_det =   "gpt-4" #"gpt-3.5-turbo"  #
 model_name_prob =   "gpt-3.5-turbo-instruct" #'text-davinci-003'
-promptCreator_ids=[0,2]
-shots=2
+promptCreator_ids=[2]
+shots=3
 num_runs= 1
 
 eval_det = True
@@ -390,6 +390,6 @@ if __name__ == '__main__':
                 result_data = pd.DataFrame(df_values_det)
                 result_data.to_csv('output/evaluation_det' + model_name_det + '_shots_' +
                                    str(shots) + 'promptgen_' + str(promptCreator_id) + "_features_file_" + features_filename +
-                                   "_ann_" + annotation_filename +'_tst_ '+annotation_filename+'_' + timestr + 'nobias.tsv',
+                                   "_ann_" + annotation_filename +'_tst_ '+test_annotation_filename+'_' + timestr + 'nobias.tsv',
                                    sep='\t', index=False)
 
