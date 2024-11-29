@@ -23,7 +23,10 @@ TEST_ANNOTATIONS = pd.read_csv('data/'+test_annotation_filename+'.tsv', sep='\t'
 the_feat = "1 Goal (1,NaN)"
 feature_list = FEATURES['feature_name'].tolist()
 #feature_list = [the_feat] #FEATURES['feature_name'].tolist()
-openai.api_key = get_api_key()
+from openai import OpenAI
+
+client = OpenAI(api_key = get_api_key())
+
 model_name_det =   "gpt-4" #"gpt-3.5-turbo"  #
 model_name_prob =   "gpt-3.5-turbo-instruct" #'text-davinci-003'
 promptCreator_ids=[2]
@@ -294,9 +297,11 @@ def evaluate_prompt_det( feature,eval_string,feature_description, conversation,e
                 #with timeoutWindows(seconds=30):
 
 
-                response =timeout(20)(openai.ChatCompletion.create)(
+                #response =timeout(20)(openai.ChatCompletion.create)(
+                response =timeout(20)(client.chat.completions.create)(
                     model=model_name_det,
                     messages=conversation
+
                 )
                 print("DETERMINISTIC RESPONSE1")
                 print("DETERMINISTIC RESPONSE2")
