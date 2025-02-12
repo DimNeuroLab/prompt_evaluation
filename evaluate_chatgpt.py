@@ -38,7 +38,7 @@ def group(df,name,keyword="2023",index_column='run'):
     df.set_index(index_column, inplace=True)
     # Group the rows by prefix
     groups = df.groupby(extract_prefix)
-    results = pd.DataFrame()
+    results = []
 
     for group_name, group_data in groups:
         # Compute the mean for each column
@@ -49,10 +49,10 @@ def group(df,name,keyword="2023",index_column='run'):
         group_mean.update( group_data.mean())
         group_stdev.update(group_data.std())
         # Append the group_mean to the result dataframe
-        results = results.append(group_mean, ignore_index=True)
-        #results = results.append(group_stdev, ignore_index=True)
+        results.append(group_mean)
+        results.append(group_stdev)
 
-
+    results= pd.DataFrame(results)
 
     # Print the results
     print(results)

@@ -19,7 +19,8 @@ annotation_filename = 'new_majority_annotations'
 test_annotation_filename = 'TEST_ANNOTATIONS_DO'
 FEATURES = pd.read_csv('data/'+features_filename+'.tsv', sep='\t')
 ANNOTATIONS = pd.read_csv('data/'+annotation_filename+'.tsv', sep='\t')
-TEST_ANNOTATIONS = pd.read_csv('data/'+test_annotation_filename+'.tsv', sep='\t')
+#TEST_ANNOTATIONS = pd.read_csv('data/'+test_annotation_filename+'.tsv', sep='\t')
+TEST_ANNOTATIONS = pd.read_csv('data/'+annotation_filename+'.tsv', sep='\t')
 the_feat = "1 Goal (1,NaN)"
 feature_list = FEATURES['feature_name'].tolist()
 #feature_list = [the_feat] #FEATURES['feature_name'].tolist()
@@ -30,8 +31,8 @@ client = OpenAI(api_key = get_api_key())
 model_name_det =   "gpt-4" #"gpt-3.5-turbo"  #
 model_name_prob =   "gpt-3.5-turbo-instruct" #'text-davinci-003'
 promptCreator_ids=[2]
-shots=3
-num_runs= 1
+shots=2
+num_runs= 3
 
 eval_det = True
 eval_prob = False
@@ -156,6 +157,7 @@ def evaluate_prompt_both( featurelist,eval_prompt, shots, promptCreator, debug=T
             prompt_annotations_det.update(evaluate_prompt_det(feature,eval_string_det, feature_description,conversation,eval_prompt,debug=False))
 
     return prompt_annotations_prob, prompt_annotations_det
+
 def evaluate_prompt_logits(feature,eval_string,  eval_prompt, debug=True):
     #these must be defined in the outer loop in orde to integrate all the feature for all the prompts
     prompt_annotations = {}
@@ -303,6 +305,8 @@ def evaluate_prompt_det( feature,eval_string,feature_description, conversation,e
                     messages=conversation
 
                 )
+                response = json.loads(response.model_dump_json())
+
                 print("DETERMINISTIC RESPONSE1")
                 print("DETERMINISTIC RESPONSE2")
                 print("DETERMINISTIC RESPONSE3")
@@ -333,7 +337,7 @@ def evaluate_prompt_det( feature,eval_string,feature_description, conversation,e
                 print("DETERMINISTIC RESPONSE25")
                 print("DETERMINISTIC RESPONSE36")
                 #print(eval_string)
-                response_parsed = -1
+                response_parsed = -2
                 pass
 
 
@@ -353,6 +357,8 @@ if __name__ == '__main__':
     df_column_names.extend(df_column_names_1)
     print(list(ANNOTATIONS.columns))
     print(df_column_names)
+    first_write = True
+    timestr = time.strftime("%Y%m%d-%H%M%S")
     for promptCreator_id in promptCreator_ids:
         promptCreator=pc(FEATURES,ANNOTATIONS,promptCreator_id)
 
@@ -379,22 +385,21 @@ if __name__ == '__main__':
 
 
 
-            print("not good response")
-            print(not_good_response)
+           # print("not good response")
+           # print(not_good_response)
 
 
 
-            timestr = time.strftime("%Y%m%d-%H%M%S")
-            if eval_prob:
-                result_data = pd.DataFrame(df_values_prob)
-                result_data.to_csv('output/evaluation_prob_'+model_name_prob+'_shots_'+str(shots)+
-                                   'promptgen_'+str(promptCreator_id)+"_features_file_"+features_filename+"_annotation_file_"
-                                   +annotation_filename+'_'+timestr+'nobias.tsv', sep='\t', index=False)
 
-            if eval_det:
-                result_data = pd.DataFrame(df_values_det)
-                result_data.to_csv('output/evaluation_det' + model_name_det + '_shots_' +
-                                   str(shots) + 'promptgen_' + str(promptCreator_id) + "_features_file_" + features_filename +
-                                   "_ann_" + annotation_filename +'_tst_ '+test_annotation_filename+'_' + timestr + 'nobias.tsv',
-                                   sep='\t', index=False)
+        if eval_prob:
+            result_data = pd.DataFrame(df_values_prob)
+            result_data.to_csv('output/evaluation_prob_'+model_name_prob+'_shots_'+str(shots)+
+                               'promptgen_'+str(promptCreator_id)+"_features_file_"+features_filename+"_annotation_file_"
+                               +annotation_filename+'_'+timestr+'nobias.tsv', sep='\t', index=False)
 
+        if eval_det:
+            result_data = pd.DataFrame(df_values_det)
+            result_data.to_csv('output/evaluation_det' + model_name_det + '_shots_' +
+                               str(shots) + 'promptgen_' + str(promptCreator_id) + "_features_file_" + features_filename +
+                               "_ann_" + annotation_filename +'_tst_ '+test_annotation_filename+'_' + timestr + 'nobias.tsv',
+                               sep='\t', index=False)

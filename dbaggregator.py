@@ -61,6 +61,7 @@ def merge_table_from_db(conn, alias, table, config, mappings):
 
         # Record the mapping from the attached DB’s (alias, old_id) to the master’s ID.
         mappings[table][(alias, old_id)] = master_id
+    cur.close()
 
 def detach_with_retry(conn, alias, retries=5, delay=1):
     for attempt in range(retries):
@@ -90,6 +91,7 @@ def merge_attached_db(conn, db_path, merge_order, table_configs, mappings):
         print(f"  Merging table {table} from {alias} ...")
         config = table_configs[table]
         merge_table_from_db(conn, alias, table, config, mappings)
+    conn.commit()
 
     # Optionally, run an integrity check before detaching.
     cur = conn.cursor()
@@ -101,8 +103,10 @@ def merge_attached_db(conn, db_path, merge_order, table_configs, mappings):
         print(f"Integrity check for {alias} passed.")
 
     # Now try detaching, with a retry loop to overcome temporary locks.
+    cur.close()
     detach_with_retry(conn, alias)
     print(f"Detached database {alias}.")
+
 
 
 
@@ -115,6 +119,11 @@ def merge_databases(master_db_path, attached_db_paths):
       - master_db_path: path to the master SQLite database.
       - attached_db_paths: list of paths to other SQLite database files.
     """
+    # Open the master database and set row_factory for dictionary access.
+    conn = sqlite3.connect(master_db_path, timeout=30)
+    conn.row_factory = sqlite3.Row
+    conn.execute("PRAGMA busy_timeout = 30000")  # 30000 milliseconds = 30 seconds
+    conn.execute("PRAGMA journal_mode = WAL")
 
     # This will hold per-table mappings: for each table,
     # mappings[table][(attached_db_alias, old_id)] = new_master_id.
@@ -124,16 +133,11 @@ def merge_databases(master_db_path, attached_db_paths):
     merge_order = ["Prompt", "Chat", "Message", "Setting", "Template"]
 
     for db_path in attached_db_paths:
-        # Open the master database and set row_factory for dictionary access.
-        conn = sqlite3.connect(master_db_path, timeout=30)
-        conn.row_factory = sqlite3.Row
-        conn.execute("PRAGMA busy_timeout = 30000")  # 30000 milliseconds = 30 seconds
-        conn.execute("PRAGMA journal_mode = WAL")
 
         merge_attached_db(conn, db_path, merge_order, table_configs, mappings)
-
         conn.commit()
-        conn.close()
+
+    conn.close()
     print("Merging complete.")
 
 
@@ -196,8 +200,8 @@ if __name__ == "__main__":
 
     import glob
     # Run the merge.
-    master_db_filename ="C:\\Users\\dimit\\project\\annotations\\integrator-exp_db_4383.sqlite"
-    db_dir="C:\\Users\\dimit\\project\\annotations"
+    master_db_filename ="C:\\Users\\dimit\\Downloads\\sathyas_data_sqlite\\integrator-exp_db_4383.sqlite"
+    db_dir="C:\\Users\\dimit\\Downloads\\sathyas_data_sqlite"
     db_names = glob.glob(db_dir+"\\*.sqlite")
     try:
         db_names.remove(master_db_filename)
